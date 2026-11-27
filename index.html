@@ -1,788 +1,479 @@
-<!DOCTYPE html>
-<html lang="th">
+<!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<!-- =====================================================================
-     [SECTION 1: HEAD & EXTERNAL LIBS]
-     ตั้งค่าหน้าเว็บ โหลดฟอนต์ และโหลดไลบรารีแผนที่ Leaflet.js
-     ===================================================================== -->
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RMUTK SafeWalk — ระบบแผนที่ทางเดินปลอดภัยและแจ้งเตือนการสูบบุหรี่อัตโนมัติ</title>
-
-  <!-- Google Fonts: Prompt -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-  <style>
+  <script>
     /* ===================================================================
-       [SECTION 2: CSS THEME & LAYOUT]
-       กำหนดตัวแปรสี โครงสร้างหน้าจอหลัก แถบรายการ และปุ่มเลื่อน
+       [SECTION 5: STATE & INITIAL DEMO DATA]
        =================================================================== */
-    :root {
-      --rmutk-green-dark: #14532d;
-      --rmutk-green: #15803d;
-      --rmutk-green-soft: #dcfce7;
-      --bg-app: #f8fafc;
-      --bg-panel: #ffffff;
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-      --border-soft: #e2e8f0;
-      --danger: #dc2626;
-      --danger-soft: #fee2e2;
-      --warning: #d97706;
-      --warning-soft: #fef3c7;
-      --info: #2563eb;
-      --info-soft: #dbeafe;
-      --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
-      --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.12);
-      --radius-md: 12px;
-      --radius-lg: 16px;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Prompt', sans-serif;
-      background-color: var(--bg-app);
-      color: var(--text-main);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    /* ส่วนหัวเว็บไซต์ (Navbar) */
-    .navbar {
-      height: 64px;
-      background: linear-gradient(90deg, var(--rmutk-green-dark) 0%, var(--rmutk-green) 100%);
-      color: #ffffff;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 18px;
-      box-shadow: var(--shadow-sm);
-      z-index: 1000;
-      flex-shrink: 0;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .brand-logo {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      background: #ffffff;
-      padding: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-      flex-shrink: 0;
-    }
-
-    .brand-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      line-height: 1.2;
-      letter-spacing: 0.2px;
-    }
-
-    .brand-subtitle {
-      font-size: 0.74rem;
-      color: #dcfce7;
-      font-weight: 400;
-    }
-
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    /* ปุ่มมาตรฐาน */
-    .btn {
-      font-family: 'Prompt', sans-serif;
-      border: none;
-      border-radius: 10px;
-      padding: 8px 14px;
-      font-size: 0.84rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s ease;
-    }
-
-    .btn-sim {
-      background: #fef08a;
-      color: #713f12;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-    }
-
-    .btn-sim:hover {
-      background: #fde047;
-      transform: translateY(-1px);
-    }
-
-    .btn-primary {
-      background: var(--rmutk-green);
-      color: #ffffff;
-    }
-
-    .btn-primary:hover {
-      background: var(--rmutk-green-dark);
-    }
-
-    .btn-secondary {
-      background: #f1f5f9;
-      color: var(--text-main);
-    }
-
-    .btn-secondary:hover {
-      background: #e2e8f0;
-    }
-
-    .btn-resolve {
-      background: #ecfdf5;
-      color: #047857;
-      border: 1px solid #a7f3d0;
-      padding: 6px 10px;
-      font-size: 0.78rem;
-      border-radius: 8px;
-    }
-
-    .btn-resolve:hover {
-      background: #d1fae5;
-    }
-
-    /* พื้นที่ทำงานหลัก (แผนที่ + แถบรายการด้านขวา) */
-    .workspace {
-      flex: 1;
-      display: flex;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .map-wrapper {
-      flex: 1;
-      position: relative;
-      height: 100%;
-    }
-
-    #map {
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-    }
-
-    /* ปรับโทนแผนที่ให้ซอฟต์สบายตา */
-    .soft-map .leaflet-tile-pane {
-      filter: saturate(0.72) brightness(1.03) contrast(0.95);
-    }
-
-    /* กล่องคำอธิบายสัญลักษณ์ (Legend) มุมล่างซ้าย */
-    .map-legend {
-      position: absolute;
-      bottom: 18px;
-      left: 16px;
-      background: rgba(255, 255, 255, 0.94);
-      backdrop-filter: blur(8px);
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-md);
-      padding: 12px 14px;
-      box-shadow: var(--shadow-md);
-      z-index: 800;
-      font-size: 0.78rem;
-      max-width: 268px;
-    }
-
-    .legend-title {
-      font-weight: 700;
-      color: var(--text-main);
-      margin-bottom: 8px;
-      font-size: 0.82rem;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-      color: var(--text-main);
-      line-height: 1.3;
-    }
-
-    .legend-item:last-child {
-      margin-bottom: 0;
-    }
-
-    .dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      border: 2px solid #ffffff;
-      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
-    }
-
-    .dot-blue-demo {
-      background: #2563eb;
-      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
-    }
-
-    .dot-smoke { background: #dc2626; }
-    .dot-dark  { background: #d97706; }
-    .dot-block { background: #2563eb; }
-    .dot-done  { background: #16a34a; }
-
-    /* หน้าต่างป๊อปอัปแจ้งจุดเสี่ยง */
-    .report-modal {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      width: 350px;
-      max-width: calc(100% - 32px);
-      background: var(--bg-panel);
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-md);
-      padding: 16px;
-      z-index: 900;
-      display: none;
-    }
-
-    .report-modal.active {
-      display: block;
-      animation: fadeIn 0.18s ease-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
-    .modal-title {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: var(--rmutk-green-dark);
-    }
-
-    .close-x {
-      background: transparent;
-      border: none;
-      font-size: 1.2rem;
-      color: var(--text-muted);
-      cursor: pointer;
-      line-height: 1;
-    }
-
-    .form-group {
-      margin-bottom: 12px;
-    }
-
-    .form-label {
-      display: block;
-      font-size: 0.8rem;
-      font-weight: 600;
-      margin-bottom: 5px;
-      color: var(--text-main);
-    }
-
-    .form-control {
-      width: 100%;
-      font-family: 'Prompt', sans-serif;
-      font-size: 0.84rem;
-      padding: 8px 10px;
-      border: 1px solid #cbd5e1;
-      border-radius: 9px;
-      background: #ffffff;
-      color: var(--text-main);
-    }
-
-    .form-control:focus {
-      outline: none;
-      border-color: var(--rmutk-green);
-      box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.15);
-    }
-
-    .coord-pill {
-      background: #f1f5f9;
-      border-radius: 8px;
-      padding: 6px 10px;
-      font-size: 0.76rem;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: space-between;
-    }
-
-    .image-preview {
-      width: 100%;
-      max-height: 140px;
-      object-fit: cover;
-      border-radius: 8px;
-      margin-top: 8px;
-      display: none;
-      border: 1px solid var(--border-soft);
-    }
-
-    .modal-footer {
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-    }
-
-    /* แถบรายการด้านขวา (Sidebar) */
-    .sidebar {
-      width: 400px;
-      max-width: 92vw;
-      background: var(--bg-panel);
-      border-left: 1px solid var(--border-soft);
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      transition: width 0.25s ease, opacity 0.2s ease;
-      z-index: 850;
-      box-shadow: -4px 0 16px rgba(15, 23, 42, 0.04);
-      flex-shrink: 0;
-    }
-
-    .sidebar.collapsed {
-      width: 0;
-      border-left: none;
-      overflow: hidden;
-    }
-
-    .sidebar-header {
-      padding: 16px;
-      border-bottom: 1px solid var(--border-soft);
-      background: #ffffff;
-    }
-
-    .sidebar-top-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-
-    .sidebar-heading {
-      font-size: 0.98rem;
-      font-weight: 700;
-      color: var(--text-main);
-    }
-
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
-
-    .stat-box {
-      background: #f8fafc;
-      border: 1px solid var(--border-soft);
-      border-radius: 10px;
-      padding: 8px;
-      text-align: center;
-    }
-
-    .stat-num {
-      font-size: 1.05rem;
-      font-weight: 700;
-      line-height: 1.1;
-    }
-
-    .stat-label {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      margin-top: 2px;
-    }
-
-    .sidebar-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 14px 16px 84px 16px;
-    }
-
-    .section-label {
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      margin: 12px 0 8px 0;
-    }
-
-    .section-label:first-child {
-      margin-top: 0;
-    }
-
-    /* การ์ดรายการเหตุการณ์ */
-    .hazard-card {
-      background: #ffffff;
-      border: 1px solid var(--border-soft);
-      border-left: 5px solid var(--info);
-      border-radius: var(--radius-md);
-      padding: 12px;
-      margin-bottom: 10px;
-      box-shadow: var(--shadow-sm);
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-      cursor: pointer;
-    }
-
-    .hazard-card:hover {
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-md);
-    }
-
-    .hazard-card.smoke { border-left-color: var(--danger); }
-    .hazard-card.dark  { border-left-color: var(--warning); }
-    .hazard-card.block { border-left-color: var(--info); }
-    .hazard-card.resolved {
-      border-left-color: #16a34a;
-      background: #f8fafc;
-      opacity: 0.88;
-    }
-
-    .card-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
-    .card-title {
-      font-size: 0.88rem;
-      font-weight: 700;
-      color: var(--text-main);
-    }
-
-    .badge {
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 999px;
-      white-space: nowrap;
-    }
-
-    .badge-smoke { background: var(--danger-soft); color: var(--danger); }
-    .badge-dark  { background: var(--warning-soft); color: #b45309; }
-    .badge-block { background: var(--info-soft); color: var(--info); }
-    .badge-done  { background: #dcfce7; color: #15803d; }
-
-    .card-desc {
-      font-size: 0.8rem;
-      color: #475569;
-      margin-bottom: 8px;
-      line-height: 1.4;
-    }
-
-    .card-img {
-      width: 100%;
-      max-height: 150px;
-      object-fit: cover;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      border: 1px solid var(--border-soft);
-    }
-
-    .card-meta {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .card-actions {
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px dashed #e2e8f0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 28px 14px;
-      color: var(--text-muted);
-      font-size: 0.82rem;
-      background: #f8fafc;
-      border-radius: var(--radius-md);
-      border: 1px dashed #cbd5e1;
-    }
-
-    /* ปุ่ม "เลื่อน" ชิดขอบล่างสุด */
-    .edge-slide-btn {
-      position: fixed;
-      bottom: 16px;
-      right: 16px;
-      z-index: 1100;
-      background: var(--rmutk-green-dark);
-      color: #ffffff;
-      border: 2px solid #ffffff;
-      border-radius: 999px;
-      padding: 9px 16px;
-      font-family: 'Prompt', sans-serif;
-      font-size: 0.82rem;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 6px 18px rgba(20, 83, 45, 0.35);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s ease;
-    }
-
-    .edge-slide-btn:hover {
-      background: var(--rmutk-green);
-      transform: translateY(-2px);
+    const RMUTK_CENTER = [13.7136, 100.5385];
+    const MERGE_RADIUS_METERS = 25;
+    const RESOLVE_HIDE_MS = 5 * 60 * 1000;
+
+    const CATEGORY_META = {
+      smoke: {
+        label: 'สูบบุหรี่ในพื้นที่ห้ามสูบ',
+        badgeClass: 'badge-smoke',
+        pinClass: 'pin-smoke',
+        circleColor: '#dc2626',
+        icon: '🚬'
+      },
+      dark: {
+        label: 'ไฟทางดับ / ทางเดินมืด',
+        badgeClass: 'badge-dark',
+        pinClass: 'pin-dark',
+        circleColor: '#d97706',
+        icon: '💡'
+      },
+      block: {
+        label: 'ขายของปิดถนน / ตั้งเต็นท์จัดงาน',
+        badgeClass: 'badge-block',
+        pinClass: 'pin-block',
+        circleColor: '#2563eb',
+        icon: '🚧'
+      }
+    };
+
+    const IOT_SPOTS = [
+      { lat: 13.7139, lng: 100.5382, note: 'เซ็นเซอร์ตรวจจับควันบุหรี่จุดทางเดินใกล้อาคารเรียน' },
+      { lat: 13.7133, lng: 100.5389, note: 'เซ็นเซอร์ตรวจจับควันบุหรี่จุดลานพักผ่อน / ทางเดินเชื่อม' },
+      { lat: 13.7141, lng: 100.5391, note: 'เซ็นเซอร์ตรวจจับควันบุหรี่จุดทางเดินริมรั้วมหาวิทยาลัย' }
+    ];
+
+    let hazards = [
+      {
+        id: 'HZ-101',
+        category: 'dark',
+        lat: 13.7137,
+        lng: 100.5381,
+        description: 'ไฟส่องสว่างทางเดินดับ 2 ดวง ช่วงเย็นเดินค่อนข้างมืด',
+        imageUrl: '',
+        reportCount: 1,
+        isIotAlert: false,
+        isResolved: false,
+        resolvedAt: null,
+        createdAt: Date.now() - 12 * 60 * 1000
+      },
+      {
+        id: 'HZ-102',
+        category: 'block',
+        lat: 13.7134,
+        lng: 100.5387,
+        description: 'มีการตั้งโต๊ะขายของและเต็นท์ชั่วคราวบริเวณทางเดินเท้า',
+        imageUrl: '',
+        reportCount: 2,
+        isIotAlert: false,
+        isResolved: false,
+        resolvedAt: null,
+        createdAt: Date.now() - 25 * 60 * 1000
+      }
+    ];
+
+    let pendingCoords = null;
+    let pendingImageDataUrl = '';
+    let isSidebarOpen = true;
+    let iotSpotIndex = 0;
+
+    /* ===================================================================
+       [SECTION 6: MAP INIT & GPS LOCATION]
+       =================================================================== */
+    const map = L.map('map', {
+      center: RMUTK_CENTER,
+      zoom: 17,
+      zoomControl: true
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const markerLayerGroup = L.layerGroup().addTo(map);
+
+    let userBlueDotMarker = null;
+    let userAccuracyCircle = null;
+
+    function locateUserOnMap() {
+      if (!navigator.geolocation) {
+        alert('เบราว์เซอร์นี้ไม่รองรับการระบุตำแหน่ง GPS ครับ');
+        return;
+      }
+      map.locate({ setView: true, maxZoom: 18, watch: false, enableHighAccuracy: true });
+    }
+
+    map.on('locationfound', function (e) {
+      const radiusMeters = Math.max(e.accuracy || 12, 8);
+
+      if (!userBlueDotMarker) {
+        const blueDotIcon = L.divIcon({
+          className: '',
+          html: '<div class="user-blue-dot"></div>',
+          iconSize: [16, 16],
+          iconAnchor: [8, 8]
+        });
+
+        userBlueDotMarker = L.marker(e.latlng, {
+          icon: blueDotIcon,
+          zIndexOffset: 900
+        })
+          .addTo(map)
+          .bindPopup('<strong>ตำแหน่งปัจจุบันของคุณ</strong>');
+
+        userAccuracyCircle = L.circle(e.latlng, {
+          radius: radiusMeters,
+          color: '#2563eb',
+          fillColor: '#3b82f6',
+          fillOpacity: 0.14,
+          weight: 1.5
+        }).addTo(map);
+      } else {
+        userBlueDotMarker.setLatLng(e.latlng);
+        userAccuracyCircle.setLatLng(e.latlng).setRadius(radiusMeters);
+      }
+    });
+
+    map.on('locationerror', function () {
+      alert('ไม่สามารถดึงตำแหน่ง GPS ได้ กรุณาเปิดสิทธิ์ Location/GPS บนอุปกรณ์และเบราว์เซอร์ก่อนครับ');
+    });
+
+    /* ===================================================================
+       [SECTION 7: SPATIAL & LIFECYCLE LOGIC]
+       =================================================================== */
+    function getDistanceMeters(lat1, lng1, lat2, lng2) {
+      const R = 6371000;
+      const toRad = function (deg) { return (deg * Math.PI) / 180; };
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function isHiddenFromMap(hazard) {
+      if (!hazard.isResolved || !hazard.resolvedAt) return false;
+      return (Date.now() - hazard.resolvedAt) >= RESOLVE_HIDE_MS;
+    }
+
+    function formatTimeAgo(timestamp) {
+      const diffSec = Math.max(1, Math.floor((Date.now() - timestamp) / 1000));
+      if (diffSec < 60) return diffSec + ' วินาทีที่แล้ว';
+      const diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return diffMin + ' นาทีที่แล้ว';
+      const diffHr = Math.floor(diffMin / 60);
+      return diffHr + ' ชั่วโมงที่แล้ว';
+    }
+
+    function addOrMergeHazard(payload) {
+      const category = payload.category;
+      const lat = payload.lat;
+      const lng = payload.lng;
+      const description = payload.description || '';
+      const imageUrl = payload.imageUrl || '';
+      const isIotAlert = Boolean(payload.isIotAlert);
+
+      const existing = hazards.find(function (item) {
+        if (item.isResolved) return false;
+        if (item.category !== category) return false;
+        const dist = getDistanceMeters(item.lat, item.lng, lat, lng);
+        return dist <= MERGE_RADIUS_METERS;
+      });
+
+      if (existing) {
+        existing.reportCount += 1;
+        if (isIotAlert) existing.isIotAlert = true;
+        if (description && existing.description.indexOf(description) === -1) {
+          existing.description = existing.description + ' | ' + description;
+        }
+        if (imageUrl && !existing.imageUrl) {
+          existing.imageUrl = imageUrl;
+        }
+        existing.createdAt = Date.now();
+        renderAll();
+        return existing;
+      }
+
+      const newHazard = {
+        id: 'HZ-' + Math.floor(100 + Math.random() * 900) + '-' + String(Date.now()).slice(-3),
+        category: category,
+        lat: lat,
+        lng: lng,
+        description: description || CATEGORY_META[category].label,
+        imageUrl: imageUrl,
+        reportCount: 1,
+        isIotAlert: isIotAlert,
+        isResolved: false,
+        resolvedAt: null,
+        createdAt: Date.now()
+      };
+
+      hazards.unshift(newHazard);
+      renderAll();
+      return newHazard;
+    }
+
+    function markResolved(id) {
+      const target = hazards.find(function (h) { return h.id === id; });
+      if (!target) return;
+      target.isResolved = true;
+      target.resolvedAt = Date.now();
+      renderAll();
     }
 
     /* ===================================================================
-       [SECTION 3: CSS MAP PINS & GPS BLUE DOT]
-       สไตล์หมุดจุดเสี่ยง จุดสีฟ้ากะพริบตำแหน่งเรา และปุ่มเล็ง GPS
+       [SECTION 8: UI RENDERING & REPORTING]
        =================================================================== */
-    .pin-marker {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 34px;
-      height: 34px;
-      border-radius: 50% 50% 50% 0;
-      transform: rotate(-45deg);
-      border: 2.5px solid #ffffff;
-      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.28);
+    function renderMarkers() {
+      markerLayerGroup.clearLayers();
+
+      hazards.forEach(function (h) {
+        if (isHiddenFromMap(h)) return;
+
+        const meta = CATEGORY_META[h.category];
+        const isHighAlert = !h.isResolved && (h.category === 'smoke' || h.isIotAlert || h.reportCount >= 2);
+        const pinStyleClass = h.isResolved ? 'pin-done' : (isHighAlert ? 'pin-smoke' : meta.pinClass);
+        const circleColor = h.isResolved ? '#16a34a' : (isHighAlert ? '#dc2626' : meta.circleColor);
+
+        L.circle([h.lat, h.lng], {
+          radius: MERGE_RADIUS_METERS,
+          color: circleColor,
+          fillColor: circleColor,
+          fillOpacity: h.isResolved ? 0.06 : 0.14,
+          weight: 1.5,
+          dashArray: h.isResolved ? '4 4' : null
+        }).addTo(markerLayerGroup);
+
+        const iconHtml = L.divIcon({
+          className: '',
+          html: '<div class="pin-marker ' + pinStyleClass + '"><span>' + (h.isResolved ? '✓' : meta.icon) + '</span></div>',
+          iconSize: [34, 34],
+          iconAnchor: [17, 34],
+          popupAnchor: [0, -32]
+        });
+
+        const statusText = h.isResolved
+          ? 'แก้ไขเสร็จสิ้นแล้ว (จะซ่อนจากแผนที่ใน 5 นาที)'
+          : (isHighAlert ? ('แจ้งเตือนสูง (จำนวนแจ้ง: ' + h.reportCount + ' ครั้ง)') : ('กำลังดำเนินการ (จำนวนแจ้ง: ' + h.reportCount + ' ครั้ง)'));
+
+        const imgHtml = h.imageUrl
+          ? ('<div style="margin-top:6px;"><img src="' + h.imageUrl + '" alt="รูปประกอบ" style="width:100%;max-height:120px;object-fit:cover;border-radius:6px;" /></div>')
+          : '';
+
+        const popupContent =
+          '<div style="min-width:190px;font-family:\'Prompt\',sans-serif;">' +
+            '<div style="font-weight:700;font-size:0.88rem;margin-bottom:4px;">' + meta.icon + ' ' + meta.label + '</div>' +
+            '<div style="font-size:0.78rem;color:#334155;margin-bottom:4px;">' + h.description + '</div>' +
+            '<div style="font-size:0.74rem;color:#64748b;">' + statusText + '</div>' +
+            imgHtml +
+          '</div>';
+
+        const marker = L.marker([h.lat, h.lng], { icon: iconHtml }).addTo(markerLayerGroup);
+        marker.bindPopup(popupContent);
+      });
     }
 
-    .pin-marker span {
-      transform: rotate(45deg);
-      font-size: 15px;
-      line-height: 1;
-    }
+    function renderSidebar() {
+      const sidebarBody = document.getElementById('sidebarBody');
+      const activeItems = hazards.filter(function (h) { return !h.isResolved; });
+      const resolvedItems = hazards.filter(function (h) { return h.isResolved; });
+      const smokeCount = activeItems.filter(function (h) { return h.category === 'smoke' || h.isIotAlert; }).length;
 
-    .pin-smoke { background: #dc2626; }
-    .pin-dark  { background: #d97706; }
-    .pin-block { background: #2563eb; }
-    .pin-done  { background: #16a34a; }
+      document.getElementById('statActive').textContent = activeItems.length;
+      document.getElementById('statSmoke').textContent = smokeCount;
+      document.getElementById('statResolved').textContent = resolvedItems.length;
 
-    /* จุดสีฟ้ากะพริบแสดงตำแหน่งปัจจุบันของเราแบบ Google Maps */
-    .user-blue-dot {
-      width: 16px;
-      height: 16px;
-      background: #2563eb;
-      border: 3px solid #ffffff;
-      border-radius: 50%;
-      animation: pulseBlueDot 2s infinite;
-    }
+      let html = '<div class="section-label">จุดเสี่ยงและแจ้งเตือนที่กำลังดำเนินการ (' + activeItems.length + ')</div>';
 
-    @keyframes pulseBlueDot {
-      0%   { box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.45), 0 2px 6px rgba(0, 0, 0, 0.25); }
-      70%  { box-shadow: 0 0 0 14px rgba(37, 99, 235, 0), 0 2px 6px rgba(0, 0, 0, 0.25); }
-      100% { box-shadow: 0 0 0 2px rgba(37, 99, 235, 0), 0 2px 6px rgba(0, 0, 0, 0.25); }
-    }
+      if (activeItems.length === 0) {
+        html += '<div class="empty-state">ยังไม่มีจุดเสี่ยงที่กำลังดำเนินการในขณะนี้<br/>คลิกบนแผนที่เพื่อปักหมุดแจ้งเหตุได้ทันที</div>';
+      } else {
+        activeItems.forEach(function (h) {
+          const meta = CATEGORY_META[h.category];
+          const isHighAlert = h.category === 'smoke' || h.isIotAlert || h.reportCount >= 2;
+          const cardClass = isHighAlert ? 'smoke' : h.category;
+          const badgeClass = isHighAlert ? 'badge-smoke' : meta.badgeClass;
+          const badgeText = h.isIotAlert
+            ? ('IoT ตรวจพบควัน (' + h.reportCount + ')')
+            : (h.reportCount >= 2 ? ('แจ้งซ้ำ ' + h.reportCount + ' จุด') : meta.label);
 
-    /* ปุ่มเล็งตำแหน่งปัจจุบัน (GPS) มุมขวาล่างเหนือปุ่มเลื่อน */
-    .locate-me-btn {
-      position: absolute;
-      bottom: 66px;
-      right: 16px;
-      z-index: 850;
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      background: #ffffff;
-      color: var(--info);
-      border: 1.5px solid #cbd5e1;
-      box-shadow: var(--shadow-md);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      transition: all 0.2s ease;
-    }
+          const imgBlock = h.imageUrl
+            ? ('<img src="' + h.imageUrl + '" class="card-img" alt="รูปภาพประกอบเหตุการณ์" />')
+            : '';
 
-    .locate-me-btn:hover {
-      background: #eff6ff;
-      border-color: var(--info);
-      transform: translateY(-1px);
-    }
-
-    @media (max-width: 860px) {
-      .brand-subtitle {
-        display: none;
+          html +=
+            '<article class="hazard-card ' + cardClass + '" onclick="focusHazard(\'' + h.id + '\')">' +
+              '<div class="card-top">' +
+                '<div class="card-title">' + meta.icon + ' ' + meta.label + '</div>' +
+                '<span class="badge ' + badgeClass + '">' + badgeText + '</span>' +
+              '</div>' +
+              '<div class="card-desc">' + h.description + '</div>' +
+              imgBlock +
+              '<div class="card-meta">' +
+                '<span>📍 ' + h.lat.toFixed(5) + ', ' + h.lng.toFixed(5) + '</span>' +
+                '<span>🕒 ' + formatTimeAgo(h.createdAt) + '</span>' +
+              '</div>' +
+              '<div class="card-actions" onclick="event.stopPropagation()">' +
+                '<span style="font-size:0.72rem;color:#64748b;">รวมรัศมี ≤ 25 ม.</span>' +
+                '<button class="btn btn-resolve" type="button" onclick="markResolved(\'' + h.id + '\')">✓ แก้ไขเสร็จสิ้น</button>' +
+              '</div>' +
+            '</article>';
+        });
       }
-      .brand-title {
-        font-size: 0.94rem;
+
+      html += '<div class="section-label">รายการที่แก้ไขเสร็จสิ้นแล้ว (' + resolvedItems.length + ')</div>';
+
+      if (resolvedItems.length === 0) {
+        html += '<div class="empty-state">ยังไม่มีรายการที่ทำเครื่องหมายว่าแก้ไขเสร็จสิ้น</div>';
+      } else {
+        resolvedItems.forEach(function (h) {
+          const meta = CATEGORY_META[h.category];
+          const remainSec = h.resolvedAt
+            ? Math.max(0, Math.ceil((RESOLVE_HIDE_MS - (Date.now() - h.resolvedAt)) / 1000))
+            : 0;
+          const mapNote = remainSec > 0
+            ? ('อยู่บนแผนที่อีก ~' + Math.ceil(remainSec / 60) + ' นาที')
+            : 'ซ่อนออกจากแผนที่แล้ว';
+
+          html +=
+            '<article class="hazard-card resolved" onclick="focusHazard(\'' + h.id + '\')">' +
+              '<div class="card-top">' +
+                '<div class="card-title">' + meta.icon + ' ' + meta.label + '</div>' +
+                '<span class="badge badge-done">แก้ไขเสร็จสิ้นแล้ว</span>' +
+              '</div>' +
+              '<div class="card-desc">' + h.description + '</div>' +
+              '<div class="card-meta">' +
+                '<span>' + mapNote + '</span>' +
+                '<span>🕒 ' + formatTimeAgo(h.resolvedAt || h.createdAt) + '</span>' +
+              '</div>' +
+            '</article>';
+        });
       }
-      .btn-sim {
-        padding: 7px 10px;
-        font-size: 0.76rem;
-      }
-      .sidebar {
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: 360px;
-        max-width: 90vw;
-      }
-      .map-legend {
-        bottom: 66px;
-        left: 12px;
-        padding: 10px 12px;
-        max-width: 225px;
-      }
+
+      sidebarBody.innerHTML = html;
     }
-  </style>
-</head>
 
-<!-- =====================================================================
-     [SECTION 4: HTML BODY STRUCTURE]
-     โครงสร้างหน้าเว็บหลัก แผนที่ ปุ่ม GPS คำอธิบาย และแถบรายการ
-     ===================================================================== -->
-<body>
-  <!-- ส่วนหัวเว็บไซต์ -->
-  <header class="navbar">
-    <div class="brand">
-      <div class="brand-logo" aria-hidden="true">
-        <svg viewBox="0 0 64 64" width="32" height="32">
-          <path d="M32 4C19.85 4 10 13.85 10 26c0 16.5 22 34 22 34s22-17.5 22-34C54 13.85 44.15 4 32 4z" fill="#15803d"/>
-          <circle cx="32" cy="25" r="11" fill="#ffffff"/>
-          <path d="M32 18v8M32 30v1.5" stroke="#dc2626" stroke-width="3.2" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <div>
-        <div class="brand-title">RMUTK SafeWalk</div>
-        <div class="brand-subtitle">ระบบแผนที่ทางเดินปลอดภัยและแจ้งเตือนการสูบบุหรี่อัตโนมัติ (มทร.กรุงเทพ)</div>
-      </div>
-    </div>
+    function renderAll() {
+      renderMarkers();
+      renderSidebar();
+    }
 
-    <div class="nav-actions">
-      <button id="simIotBtn" class="btn btn-sim" type="button">
-        <span>🚬</span>
-        <span>จำลอง IoT ตรวจจับควันบุหรี่</span>
-      </button>
-    </div>
-  </header>
+    window.focusHazard = function (id) {
+      const target = hazards.find(function (h) { return h.id === id; });
+      if (!target) return;
+      map.setView([target.lat, target.lng], 18, { animate: true });
+    };
 
-  <!-- พื้นที่ทำงานหลัก -->
-  <main class="workspace">
-    <!-- แผนที่และองค์ประกอบบนแผนที่ -->
-    <section class="map-wrapper">
-      <div id="map" class="soft-map"></div>
+    window.markResolved = markResolved;
 
-      <!-- ปุ่มเล็งตำแหน่งปัจจุบัน (จุดสีฟ้าแบบ Google Maps) -->
-      <button id="locateMeBtn" class="locate-me-btn" type="button" title="ตำแหน่งปัจจุบันของฉัน (GPS)">
-        🎯
-      </button>
+    const reportModal = document.getElementById('reportModal');
+    const pickedCoordsEl = document.getElementById('pickedCoords');
+    const imageInput = document.getElementById('hazardImage');
+    const imagePreview = document.getElementById('imagePreview');
 
-      <!-- กล่องคำอธิบายสัญลักษณ์ -->
-      <div class="map-legend">
-        <div class="legend-title">สัญลักษณ์บนแผนที่</div>
-        <div class="legend-item">
-          <span class="dot dot-blue-demo"></span>
-          <span>ตำแหน่งปัจจุบันของเรา (กดปุ่ม 🎯 เพื่อระบุพิกัด)</span>
-        </div>
-        <div class="legend-item">
-          <span class="dot dot-smoke"></span>
-          <span>แจ้งเตือนควันบุหรี่อัตโนมัติ / มีคนแจ้งหลายคน (≤ 25 ม.)</span>
-        </div>
-        <div class="legend-item">
-          <span class="dot dot-dark"></span>
-          <span>ไฟทางดับ / จุดมืด (รอแก้ไข)</span>
-        </div>
-        <div class="legend-item">
-          <span class="dot dot-block"></span>
-          <span>ปิดถนน / กิจกรรมกีดขวางทางเดิน</span>
-        </div>
-        <div class="legend-item">
-          <span class="dot dot-done"></span>
-          <span>แก้ไขเสร็จสิ้นแล้ว (ซ่อนใน 5 นาที)</span>
-        </div>
-      </div>
+    function openReportModal(latlng) {
+      pendingCoords = latlng;
+      pendingImageDataUrl = '';
+      imageInput.value = '';
+      imagePreview.src = '';
+      imagePreview.style.display = 'none';
+      document.getElementById('hazardDesc').value = '';
+      pickedCoordsEl.textContent = latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5);
+      reportModal.classList.add('active');
+    }
 
-      <!-- หน้าต่างป๊อปอัปแจ้งจุดเสี่ยง -->
-      <div id="reportModal" class="report-modal" role="dialog" aria-label="แจ้งจุดเสี่ยงบนแผนที่">
-        <div class="modal-header">
-          <div class="modal-title">📍 แจ้งจุดเสี่ยง / ปักหมุดบนแผนที่</div>
-          <button id="closeModalBtn" class="close-x" type="button" title="ปิดหน้าต่าง">×</button>
-        </div>
+    function closeReportModal() {
+      reportModal.classList.remove('active');
+      pendingCoords = null;
+    }
 
-        <form id="reportForm">
-          <div class="form-group">
-            <label class="form-label" for="hazardCategory">หมวดหมู่เหตุการณ์</label>
-            <select id="hazardCategory" class="form-control" required>
-              <option value="smoke">สูบบุหรี่ในพื้นที่ห้ามสูบ</option>
-              <option value="dark">ไฟทางดับ / ทางเดินมืด</option>
-              <option value="block">ขายของปิดถนน / ตั้งเต็นท์จัดงาน</option>
-            </select>
-          </div>
+    map.on('click', function (e) {
+      openReportModal(e.latlng);
+    });
 
-          <div class="form-group">
-            <label class="form-label" for="hazardImage">อัปโหลดรูปภาพประกอบ (ไม่บังคับ — ไม่ใส่รูปก็ส่งได้)</label>
-            <input id="hazardImage" class="form-control" type="file" accept="image/*" />
-            <img id="imagePreview" class="image-preview" alt="ตัวอย่างรูปภาพ" />
-          </div>
+    document.getElementById('closeModalBtn').addEventListener('click', closeReportModal);
+    document.getElementById('cancelReportBtn').addEventListener('click', closeReportModal);
 
-          <div class="form-group">
-            <label class="form-label" for="hazardDesc">รายละเอียดเพิ่มเติม</label>
-            <textarea id="hazardDesc" class="form-control" rows="2" placeholder="ระบุจุดสังเกต เช่น หน้าอาคารเรียน หรือทางเดินเชื่อม..."></textarea>
-          </div>
+    imageInput.addEventListener('change', function (e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) {
+        pendingImageDataUrl = '';
+        imagePreview.style.display = 'none';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        pendingImageDataUrl = ev.target.result;
+        imagePreview.src = pendingImageDataUrl;
+        imagePreview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    });
 
-          <div class="coord-pill">
-            <span>พิกัดที่คลิกเลือกบนแผนที่:</span>
-            <strong id="pickedCoords">-</strong>
-          </div>
+    document.getElementById('reportForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!pendingCoords) return;
 
-          <div class="modal-footer">
-            <button id="cancelReportBtn" class="btn btn-secondary" type="button">ยกเลิก</button>
-            <button class="btn btn-primary" type="submit">บันทึกแจ้งเหตุ</button>
-          </div>
-        </form>
-      </div>
-    </section>
+      const category = document.getElementById('hazardCategory').value;
+      const description = document.getElementById('hazardDesc').value.trim();
 
-    <!-- แถบรายการเหตุการณ์ด้านขวา -->
-    <aside id="sidebar" class="sidebar">
-      <div class="sidebar-header">
-        <div class="sidebar-top-row">
-          <div class="sidebar-heading">รายการแจ้งเตือนและจุดเสี่ยง</div>
-        </div>
-        <div class="stats-row">
-          <div class="stat-box">
-            <div id="statActive" class="stat-num" style="color: var(--danger);">0</div>
-            <div class="stat-label">กำลังดำเนินการ</div>
-          </div>
-          <div class="stat-box">
-            <div id="statSmoke" class="stat-num" style="color: #b91c1c;">0</div>
-            <div class="stat-label">เคสควันบุหรี่</div>
-          </div>
-          <div class="stat-box">
-            <div id
+      const created = addOrMergeHazard({
+        category: category,
+        lat: pendingCoords.lat,
+        lng: pendingCoords.lng,
+        description: description,
+        imageUrl: pendingImageDataUrl,
+        isIotAlert: false
+      });
+
+      closeReportModal();
+      map.setView([created.lat, created.lng], 18, { animate: true });
+    });
+
+    document.getElementById('simIotBtn').addEventListener('click', function () {
+      const spot = IOT_SPOTS[iotSpotIndex % IOT_SPOTS.length];
+      iotSpotIndex += 1;
+
+      const alertItem = addOrMergeHazard({
+        category: 'smoke',
+        lat: spot.lat,
+        lng: spot.lng,
+        description: spot.note + ' (ตรวจพบค่าควัน/ฝุ่นเกินเกณฑ์อัตโนมัติ)',
+        imageUrl: '',
+        isIotAlert: true
+      });
+
+      map.setView([alertItem.lat, alertItem.lng], 18, { animate: true });
+    });
+
+    document.getElementById('locateMeBtn').addEventListener('click', locateUserOnMap);
+
+    const sidebarEl = document.getElementById('sidebar');
+    const edgeSlideBtn = document.getElementById('edgeSlideBtn');
+    const slideArrow = document.getElementById('slideArrow');
+    const slideLabel = document.getElementById('slideLabel');
+
+    edgeSlideBtn.addEventListener('click', function () {
+      isSidebarOpen = !isSidebarOpen;
+      sidebarEl.classList.toggle('collapsed', !isSidebarOpen);
+      edgeSlideBtn.setAttribute('aria-expanded', String(isSidebarOpen));
+
+      if (isSidebarOpen) {
+        slideArrow.textContent = '▶';
+        slideLabel.textContent = 'เลื่อน';
+      } else {
+        slideArrow.textContent = '◀';
+        slideLabel.textContent = 'เปิดรายการ';
+      }
+
+      setTimeout(function () {
+        map.invalidateSize();
+      }, 260);
+    });
+
+    setInterval(function () {
+      renderAll();
+    }, 15000);
+
+    renderAll();
+  </script>
