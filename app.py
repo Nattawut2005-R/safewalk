@@ -14,12 +14,17 @@ from supabase import create_client
 app = Flask(__name__)
 
 # ค่า Environment Variables (นำไปตั้งค่าในหน้า Render -> Environment)
-LINE_CHANNEL_SECRET = os.environ.get("LINE_CHANNEL_SECRET", "")
-LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "")
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://cysxdienifyupfunevfs.supabase.co")
-SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+LINE_CHANNEL_SECRET = os.environ.get("LINE_CHANNEL_SECRET", "").strip()
+LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://cysxdienifyupfunevfs.supabase.co").strip()
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
 
-supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY) if SUPABASE_SERVICE_KEY else None
+supabase = None
+if SUPABASE_URL.startswith("http") and SUPABASE_SERVICE_KEY:
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    except Exception as exc:
+        print("Supabase init warning:", exc)
 
 # เก็บสถานะชั่วคราวของผู้ใช้แต่ละคนในแชต LINE
 user_sessions = {}
@@ -132,7 +137,7 @@ def save_hazard_to_supabase(
     image_url: str = "",
 ):
     if not supabase:
-        raise RuntimeError("Supabase client ยังไม่ได้ตั้งค่า SUPABASE_SERVICE_KEY")
+        raise RuntimeError("Supabase client ยังไม่ได้เชื่อมต่อ (ตรวจ SUPABASE_URL และ SUPABASE_SERVICE_KEY ใน Render)")
 
     now_iso = datetime.now(timezone.utc).isoformat()
     existing_rows = (
@@ -190,7 +195,13 @@ def save_hazard_to_supabase(
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"service": "RMUTK SafeWalk LINE Bot", "status": "running"}), 200
+    return jsonify(
+        {
+            "service": "RMUTK SafeWalk LINE Bot",
+            "status": "running",
+            "supabase_connected": bool(supabase),
+        }
+    ), 200
 
 
 @app.route("/health", methods=["GET"])
@@ -219,7 +230,6 @@ def line_webhook():
             {"category": "smoke", "pending_note": "", "last_hazard_id": None},
         )
 
-        # กรณีแอดเพื่อนใหม่
         if event_type == "follow":
             reply_line_message(
                 reply_token,
@@ -281,7 +291,6 @@ def line_webhook():
                 )
 
             else:
-                # ถ้าเพิ่งบันทึกหมุดเสร็จแล้วพิมพ์ข้อความตามหลัง -> อัปเดตรายละเอียดเพิ่มให้จุดล่าสุดทันที
                 if session.get("last_hazard_id") and supabase:
                     target_id = session["last_hazard_id"]
                     existing = supabase.table("hazards").select("description").eq("id", target_id).execute().data
@@ -299,7 +308,6 @@ def line_webhook():
                         ],
                     )
                 else:
-                    # ถ้าพิมพ์รายละเอียดก่อนส่ง Location -> เก็บข้อความรอไว้รวมตอนส่งพิกัด
                     session["pending_note"] = text
                     reply_line_message(
                         reply_token,
@@ -342,7 +350,6 @@ def line_webhook():
             )
 
         elif msg_type == "image":
-            # จุดเชื่อมต่อสำหรับขั้นตอนถัดไป (ดึงรูปจาก LINE Content API ส่งขึ้น Cloudflare R2)
             reply_line_message(
                 reply_token,
                 [
