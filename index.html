@@ -11,7 +11,553 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="./eiei.css" />
+
+  <style>
+    :root {
+      --rmutk-green-dark: #14532d;
+      --rmutk-green: #15803d;
+      --rmutk-green-bright: #22c55e;
+      --rmutk-green-soft: #dcfce7;
+
+      /* โหมดกลางคืน */
+      --bg-app: #0b1120;
+      --bg-card: #111827;
+      --bg-subtle: #0f172a;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-soft: #1e293b;
+      --map-filter: invert(1) hue-rotate(180deg) brightness(0.62) contrast(1.12) saturate(0.75);
+
+      --danger: #ef4444;
+      --danger-soft: rgba(239, 68, 68, 0.18);
+      --warning: #f59e0b;
+      --warning-soft: rgba(245, 158, 11, 0.18);
+      --info: #3b82f6;
+      --info-soft: rgba(59, 130, 246, 0.18);
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+      --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.45);
+      --radius-md: 12px;
+    }
+
+    /* โหมดกลางวัน */
+    body.day-mode {
+      --bg-app: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-subtle: #f0fdf4;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --border-soft: #cbd5e1;
+      --map-filter: saturate(1.05) brightness(1.03) contrast(1.02);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      height: 100%;
+      font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      overflow: hidden;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .app-shell {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ปุ่มกดทั้งหมด: ปุ่มสีขาว โค้งมน และมีกรอบ */
+    .pill-btn {
+      background: #ffffff;
+      color: #0f172a;
+      border: 1.5px solid var(--rmutk-green);
+      border-radius: 999px;
+      font-family: 'Prompt', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+      transition: transform 0.12s ease, background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .pill-btn:active {
+      transform: scale(0.96);
+    }
+
+    .pill-btn.active {
+      background: #ffffff;
+      color: var(--rmutk-green-dark);
+      border: 2px solid var(--rmutk-green-bright);
+      box-shadow: 0 3px 10px rgba(34, 197, 94, 0.28);
+    }
+
+    /* แถบบนกะทัดรัด */
+    .top-header {
+      background: var(--bg-card);
+      border-bottom: 2px solid var(--rmutk-green);
+      box-shadow: var(--shadow-sm);
+      z-index: 1000;
+      flex-shrink: 0;
+    }
+
+    .header-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 6px 10px;
+    }
+
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #ffffff;
+      color: #0f172a;
+      border: 1.5px solid var(--rmutk-green);
+      border-radius: 12px;
+      padding: 4px 10px;
+      min-width: 0;
+    }
+
+    .brand-badge-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: var(--rmutk-green-soft);
+      color: var(--rmutk-green-dark);
+      border: 1.5px solid var(--rmutk-green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    .brand-sub {
+      font-size: 0.64rem;
+      color: #475569;
+      white-space: nowrap;
+    }
+
+    .btn-day {
+      min-height: 34px;
+      padding: 4px 11px;
+      font-size: 0.72rem;
+      flex-shrink: 0;
+    }
+
+    /* แถบ 3 ช่องด้านบนซ้าย ขนาดเล็กลงกะทัดรัด */
+    .tab-bar-wrap {
+      padding: 5px 10px 7px 10px;
+      background: var(--bg-subtle);
+    }
+
+    .nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 560px;
+    }
+
+    .nav-tab {
+      flex: 1;
+      min-height: 34px;
+      padding: 4px 8px;
+      font-size: 0.7rem;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+
+    .tab-badge {
+      background: #fee2e2;
+      color: #dc2626;
+      border: 1px solid #fca5a5;
+      border-radius: 999px;
+      padding: 0 5px;
+      font-size: 0.64rem;
+      font-weight: 700;
+    }
+
+    /* พื้นที่เนื้อหา */
+    .content-area {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .view-panel {
+      display: none;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+    }
+
+    .view-panel.active {
+      display: block;
+    }
+
+    #view-map {
+      position: relative;
+      overflow: hidden;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .leaflet-tile-pane {
+      filter: var(--map-filter);
+      transition: filter 0.25s ease;
+    }
+
+    /* ปุ่มควบคุมแผนที่ด้านขวาล่าง */
+    .map-controls {
+      position: absolute;
+      bottom: 16px;
+      right: 12px;
+      z-index: 850;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .map-fab {
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      font-size: 1rem;
+    }
+
+    /* กล่องสัญลักษณ์พับ/กางได้มุมซ้ายล่าง */
+    .legend-box {
+      position: absolute;
+      bottom: 16px;
+      left: 12px;
+      z-index: 850;
+      max-width: calc(100vw - 76px);
+    }
+
+    .legend-toggle-btn {
+      min-height: 34px;
+      padding: 5px 11px;
+      font-size: 0.72rem;
+    }
+
+    .legend-card {
+      display: none;
+      margin-top: 6px;
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1.5px solid var(--rmutk-green);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      box-shadow: var(--shadow-md);
+      font-size: 0.72rem;
+      max-width: 250px;
+    }
+
+    .legend-box.open .legend-card {
+      display: block;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .legend-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1.5px solid #ffffff;
+      flex-shrink: 0;
+    }
+
+    /* หมุดบนแผนที่ */
+    .pin-marker {
+      position: relative;
+      width: 24px;
+      height: 24px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      border: 2px solid #ffffff;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pin-marker::after {
+      content: '';
+      position: absolute;
+      top: -10px;
+      left: -10px;
+      right: -10px;
+      bottom: -10px;
+      border-radius: 50%;
+    }
+
+    .pin-marker span {
+      transform: rotate(45deg);
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .pin-smoke { background: #ef4444; }
+    .pin-dark  { background: #f59e0b; }
+    .pin-block { background: #3b82f6; }
+    .pin-done  { background: #22c55e; }
+
+    .user-blue-dot {
+      width: 14px;
+      height: 14px;
+      background: #3b82f6;
+      border: 2.5px solid #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+    }
+
+    /* รายการแจ้งเหตุและคู่มือ */
+    .feed-container,
+    .guide-container {
+      max-width: 740px;
+      margin: 0 auto;
+      padding: 12px 12px 32px 12px;
+    }
+
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .summary-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-soft);
+      border-bottom: 3px solid var(--rmutk-green);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .summary-num {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .summary-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+    }
+
+    .filter-chip {
+      min-height: 34px;
+      padding: 5px 12px;
+      font-size: 0.72rem;
+      white-space: nowrap;
+    }
+
+    .hazard-card,
+    .guide-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .hazard-card {
+      border-left: 4px solid var(--info);
+    }
+
+    .hazard-card.smoke { border-left-color: var(--danger); }
+    .hazard-card.dark  { border-left-color: var(--warning); }
+    .hazard-card.block { border-left-color: var(--info); }
+    .hazard-card.resolved { border-left-color: var(--rmutk-green-bright); opacity: 0.92; }
+
+    .hazard-card.highlighted {
+      border: 2px solid var(--rmutk-green-bright);
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+    }
+
+    .guide-card {
+      border-top: 3px solid var(--rmutk-green);
+    }
+
+    .campus-banner {
+      background: linear-gradient(135deg, #14532d 0%, #15803d 100%);
+      color: #ffffff;
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .campus-banner-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .campus-banner-sub {
+      font-size: 0.76rem;
+      color: #dcfce7;
+      line-height: 1.45;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .card-title,
+    .guide-heading {
+      font-size: 0.86rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .badge {
+      font-size: 0.66rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .badge-smoke { background: var(--danger-soft); color: var(--danger); }
+    .badge-dark  { background: var(--warning-soft); color: var(--warning); }
+    .badge-block { background: var(--info-soft); color: var(--info); }
+    .badge-done  { background: var(--rmutk-green-soft); color: #166534; }
+
+    .card-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+      margin-bottom: 8px;
+    }
+
+    .card-img {
+      width: 100%;
+      max-height: 175px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid var(--border-soft);
+    }
+
+    .card-meta {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border-soft);
+    }
+
+    .btn-action {
+      min-height: 34px;
+      padding: 5px 11px;
+      font-size: 0.72rem;
+    }
+
+    .guide-list {
+      padding-left: 18px;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+
+    .guide-list strong {
+      color: var(--text-main);
+    }
+
+    .line-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 38px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #14532d;
+      border: 1.5px solid #15803d;
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-top: 4px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+    }
+
+    .empty-box {
+      background: var(--bg-card);
+      border: 1px dashed var(--border-soft);
+      border-radius: var(--radius-md);
+      padding: 22px 12px;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    @media (min-width: 768px) {
+      .brand-title { font-size: 0.96rem; }
+      .nav-tab { font-size: 0.78rem; padding: 6px 10px; }
+      .pin-marker { width: 28px; height: 28px; }
+      .pin-marker span { font-size: 13px; }
+    }
+  </style>
 </head>
 <body>
   <div class="app-shell">
@@ -22,11 +568,11 @@
           <div class="brand-badge-icon">R</div>
           <div>
             <div class="brand-title">RMUTK SafeWalk</div>
-            <div class="brand-sub">มทร.กรุงเทพ • เฉพาะพื้นที่มหาวิทยาลัย</div>
+            <div class="brand-sub">มทร.กรุงเทพ • โหมดติดตามสถานะ</div>
           </div>
         </div>
 
-        <button id="dayModeBtn" class="btn-day" type="button" aria-pressed="false">
+        <button id="dayModeBtn" class="pill-btn btn-day" type="button" aria-pressed="false">
           <span id="dayModeIcon">☀️</span>
           <span id="dayModeLabel">โหมดกลางวัน</span>
         </button>
@@ -34,18 +580,18 @@
 
       <div class="tab-bar-wrap">
         <nav class="nav-tabs" role="tablist" aria-label="เมนูหลัก">
-          <button id="tab-map" class="nav-tab active" type="button" role="tab" aria-selected="true" onclick="switchTab('map')">
+          <button id="tab-map" class="pill-btn nav-tab active" type="button" role="tab" aria-selected="true" onclick="switchTab('map')">
             <span>🗺️</span>
             <span>แผนที่</span>
           </button>
 
-          <button id="tab-reports" class="nav-tab" type="button" role="tab" aria-selected="false" onclick="switchTab('reports')">
+          <button id="tab-reports" class="pill-btn nav-tab" type="button" role="tab" aria-selected="false" onclick="switchTab('reports')">
             <span>📋</span>
             <span>เรื่องที่คนแจ้งเข้ามา</span>
             <span id="activeCountBadge" class="tab-badge">0</span>
           </button>
 
-          <button id="tab-guide" class="nav-tab" type="button" role="tab" aria-selected="false" onclick="switchTab('guide')">
+          <button id="tab-guide" class="pill-btn nav-tab" type="button" role="tab" aria-selected="false" onclick="switchTab('guide')">
             <span>📖</span>
             <span>คู่มือใช้เว็บ</span>
           </button>
@@ -54,12 +600,12 @@
     </header>
 
     <main class="content-area">
-      <!-- ช่อง 1: แผนที่โฟกัสเฉพาะพื้นที่ มทร.กรุงเทพ (ซ่อนรอบข้าง) -->
+      <!-- ช่อง 1: แผนที่เต็มๆ โฟกัสพื้นที่ มทร.กรุงเทพ -->
       <section id="view-map" class="view-panel active" role="tabpanel" aria-labelledby="tab-map">
         <div id="map"></div>
 
         <div id="legendBox" class="legend-box">
-          <button id="legendToggleBtn" class="legend-toggle-btn" type="button" aria-expanded="false">
+          <button id="legendToggleBtn" class="pill-btn legend-toggle-btn" type="button" aria-expanded="false">
             <span>🏷️</span>
             <span>สัญลักษณ์</span>
           </button>
@@ -88,8 +634,8 @@
         </div>
 
         <div class="map-controls">
-          <button id="centerRmutkBtn" class="map-fab" type="button" title="กลับจุดศูนย์กลาง มทร.กรุงเทพ">🏫</button>
-          <button id="locateMeBtn" class="map-fab" type="button" title="ตำแหน่งปัจจุบัน (GPS)">🎯</button>
+          <button id="centerRmutkBtn" class="pill-btn map-fab" type="button" title="กลับจุดศูนย์กลาง มทร.กรุงเทพ">🏫</button>
+          <button id="locateMeBtn" class="pill-btn map-fab" type="button" title="ตำแหน่งปัจจุบัน (GPS)">🎯</button>
         </div>
       </section>
 
@@ -108,11 +654,11 @@
           </div>
 
           <div class="filter-row">
-            <button class="filter-chip active" data-filter="all" type="button" onclick="setFilter('all')">ทั้งหมด</button>
-            <button class="filter-chip" data-filter="smoke" type="button" onclick="setFilter('smoke')">🚬 ควันบุหรี่</button>
-            <button class="filter-chip" data-filter="dark" type="button" onclick="setFilter('dark')">💡 ไฟทางดับ</button>
-            <button class="filter-chip" data-filter="block" type="button" onclick="setFilter('block')">🚧 กีดขวาง</button>
-            <button class="filter-chip" data-filter="resolved" type="button" onclick="setFilter('resolved')">✅ แก้ไขแล้ว</button>
+            <button class="pill-btn filter-chip active" data-filter="all" type="button" onclick="setFilter('all')">ทั้งหมด</button>
+            <button class="pill-btn filter-chip" data-filter="smoke" type="button" onclick="setFilter('smoke')">🚬 ควันบุหรี่</button>
+            <button class="pill-btn filter-chip" data-filter="dark" type="button" onclick="setFilter('dark')">💡 ไฟทางดับ</button>
+            <button class="pill-btn filter-chip" data-filter="block" type="button" onclick="setFilter('block')">🚧 กีดขวาง</button>
+            <button class="pill-btn filter-chip" data-filter="resolved" type="button" onclick="setFilter('resolved')">✅ แก้ไขแล้ว</button>
           </div>
 
           <div id="reportsList"></div>
@@ -152,9 +698,9 @@
           <div class="guide-card">
             <div class="guide-heading">🏷️ ความหมายหมุดและระยะเวลาที่อยู่บนแผนที่</div>
             <ul class="guide-list">
-              <li><strong>หมุดแดง (🚬 / IoT / แจ้งซ้ำ):</strong> ควันบุหรี่ แจ้งเตือนจาก IoT หรือแจ้งซ้ำ — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว</strong></li>
-              <li><strong>หมุดส้ม (💡 ไฟทางดับ):</strong> ไฟทางดับหรือทางเดินมืด — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว</strong></li>
-              <li><strong>หมุดน้ำเงิน (🚧 กีดขวาง):</strong> ปิดถนนหรือกีดขวางทางเดิน — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว</strong></li>
+              <li><strong>หมุดแดง (🚬 / IoT / แจ้งซ้ำ):</strong> ควันบุหรี่ แจ้งเตือนจาก IoT หรือแจ้งซ้ำ — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว หรือครบ 10 นาที</strong></li>
+              <li><strong>หมุดส้ม (💡 ไฟทางดับ):</strong> ไฟทางดับหรือทางเดินมืด — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว หรือครบ 10 นาที</strong></li>
+              <li><strong>หมุดน้ำเงิน (🚧 กีดขวาง):</strong> ปิดถนนหรือกีดขวางทางเดิน — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว หรือครบ 10 นาที</strong></li>
               <li><strong>หมุดเขียว (✅ แก้ไขแล้ว):</strong> <strong>แสดงบนแผนที่ต่ออีก 10 นาที</strong> แล้วหายจากแผนที่อัตโนมัติ</li>
             </ul>
           </div>
@@ -170,17 +716,13 @@
   <script>
     const RMUTK_CENTER = [13.7136, 100.5385];
     const MERGE_RADIUS_METERS = 25;
-    const RESOLVE_HIDE_MS = 10 * 60 * 1000;
+    const RESOLVE_HIDE_MS = 10 * 60 * 1000;      // กดแก้ไขแล้ว -> อยู่ต่อ 10 นาทีแล้วหาย
+    const AUTO_EXPIRE_MS = 10 * 60 * 1000;       // ไม่มีใครกดอะไรเลย -> ครบ 10 นาทีแล้วซ่อนจากแผนที่
 
-    // กรอบเฉพาะพื้นที่ มทร.กรุงเทพ
-    const CAMPUS_SOUTH = 13.7104;
-    const CAMPUS_NORTH = 13.7166;
-    const CAMPUS_WEST  = 100.5360;
-    const CAMPUS_EAST  = 100.5412;
-
+    // โฟกัสเฉพาะโซน มทร.กรุงเทพ
     const RMUTK_BOUNDS = L.latLngBounds(
-      [CAMPUS_SOUTH, CAMPUS_WEST],
-      [CAMPUS_NORTH, CAMPUS_EAST]
+      [13.7085, 100.5325],
+      [13.7185, 100.5445]
     );
 
     const CATEGORY_META = {
@@ -236,21 +778,6 @@
     const dayModeBtn = document.getElementById('dayModeBtn');
     const dayModeIcon = document.getElementById('dayModeIcon');
     const dayModeLabel = document.getElementById('dayModeLabel');
-    let outsideMaskLayer = null;
-
-    function getMaskColor() {
-      return document.body.classList.contains('day-mode') ? '#e2e8f0' : '#090d16';
-    }
-
-    function updateMaskColor() {
-      if (outsideMaskLayer) {
-        outsideMaskLayer.setStyle({
-          color: getMaskColor(),
-          fillColor: getMaskColor(),
-          fillOpacity: 1
-        });
-      }
-    }
 
     function applyDayMode(enabled) {
       document.body.classList.toggle('day-mode', enabled);
@@ -258,7 +785,6 @@
       dayModeBtn.setAttribute('aria-pressed', String(enabled));
       dayModeIcon.textContent = enabled ? '🌙' : '☀️';
       dayModeLabel.textContent = enabled ? 'โหมดกลางคืน' : 'โหมดกลางวัน';
-      updateMaskColor();
       try { localStorage.setItem('rmutk_day_mode', enabled ? '1' : '0'); } catch (e) {}
     }
 
@@ -266,48 +792,25 @@
       applyDayMode(!document.body.classList.contains('day-mode'));
     });
 
+    try {
+      if (localStorage.getItem('rmutk_day_mode') === '1') {
+        applyDayMode(true);
+      }
+    } catch (e) {}
+
     const map = L.map('map', {
       center: RMUTK_CENTER,
       zoom: 17,
-      minZoom: 17,
+      minZoom: 16,
       maxZoom: 19,
       maxBounds: RMUTK_BOUNDS,
-      maxBoundsViscosity: 1.0
+      maxBoundsViscosity: 0.9
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
-
-    // หน้ากากปิดพื้นที่รอบนอก มทร.กรุงเทพ ให้เหลือเฉพาะบริเวณมหาลัย
-    const worldOuterRing = [
-      [13.7300, 100.5150],
-      [13.7300, 100.5650],
-      [13.6950, 100.5650],
-      [13.6950, 100.5150]
-    ];
-
-    const campusInnerHole = [
-      [CAMPUS_NORTH, CAMPUS_WEST],
-      [CAMPUS_SOUTH, CAMPUS_WEST],
-      [CAMPUS_SOUTH, CAMPUS_EAST],
-      [CAMPUS_NORTH, CAMPUS_EAST]
-    ];
-
-    outsideMaskLayer = L.polygon([worldOuterRing, campusInnerHole], {
-      color: getMaskColor(),
-      weight: 0,
-      fillColor: getMaskColor(),
-      fillOpacity: 1,
-      interactive: false
-    }).addTo(map);
-
-    try {
-      if (localStorage.getItem('rmutk_day_mode') === '1') {
-        applyDayMode(true);
-      }
-    } catch (e) {}
 
     const markerLayerGroup = L.layerGroup().addTo(map);
 
@@ -381,9 +884,21 @@
     }
 
     function isHiddenFromMap(hazard) {
-      if (hazard.expiresAt && Date.now() >= hazard.expiresAt) return true;
-      if (!hazard.isResolved || !hazard.resolvedAt) return false;
-      return (Date.now() - hazard.resolvedAt) >= RESOLVE_HIDE_MS;
+      const now = Date.now();
+
+      if (hazard.expiresAt && now >= hazard.expiresAt) {
+        return true;
+      }
+
+      if (hazard.isResolved && hazard.resolvedAt) {
+        return (now - hazard.resolvedAt) >= RESOLVE_HIDE_MS;
+      }
+
+      if (!hazard.isResolved && hazard.createdAt) {
+        return (now - hazard.createdAt) >= AUTO_EXPIRE_MS;
+      }
+
+      return false;
     }
 
     function formatTimeAgo(timestamp) {
@@ -511,8 +1026,8 @@
           : '';
 
         const statusBtnHtml = !h.isResolved
-          ? ('<button class="btn-action btn-not-fixed" type="button" onclick="markNotResolved(\'' + h.id + '\')">ยังไม่แก้ไข (' + (h.notFixedCount || 0) + ')</button>' +
-             '<button class="btn-action btn-resolve" type="button" onclick="markResolved(\'' + h.id + '\')">✓ แก้ไขแล้ว</button>')
+          ? ('<button class="pill-btn btn-action" type="button" onclick="markNotResolved(\'' + h.id + '\')">ยังไม่แก้ไข (' + (h.notFixedCount || 0) + ')</button>' +
+             '<button class="pill-btn btn-action" type="button" onclick="markResolved(\'' + h.id + '\')">✓ แก้ไขแล้ว</button>')
           : '';
 
         const highlightClass = (highlightedId === h.id) ? ' highlighted' : '';
@@ -530,7 +1045,7 @@
               '<span>🕒 ' + formatTimeAgo(h.createdAt) + '</span>' +
             '</div>' +
             '<div class="card-actions">' +
-              '<button class="btn-action btn-view-map" type="button" onclick="focusOnMap(' + h.lat + ', ' + h.lng + ')">ดูบนแผนที่</button>' +
+              '<button class="pill-btn btn-action" type="button" onclick="focusOnMap(' + h.lat + ', ' + h.lng + ')">ดูบนแผนที่</button>' +
               '<div style="display:flex;gap:6px;flex-wrap:wrap;">' + statusBtnHtml + '</div>' +
             '</div>' +
           '</article>'
@@ -559,7 +1074,11 @@
         .subscribe();
     }
 
-    setInterval(loadHazardsFromSupabase, 15000);
+    setInterval(function () {
+      renderMarkers();
+      loadHazardsFromSupabase();
+    }, 15000);
+
     renderAll();
     loadHazardsFromSupabase();
   </script>
