@@ -3,35 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#15803d" />
-  <title>RMUTK SafeWalk</title>
+  <meta name="theme-color" content="#14532d" />
+  <title>RMUTK SafeWalk — แผนที่ทางเดินปลอดภัย มทร.กรุงเทพ</title>
 
   <link rel="icon" href="data:," />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="./eiei.css" />
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <div class="app-shell">
-    <!-- แถบบน: กล่องสีขาว + แถบสีเขียว + 3 แท็บด้านบนซ้าย -->
+    <!-- แถบบนกะทัดรัด + 3 แท็บด้านบนซ้าย -->
     <header class="top-header">
       <div class="header-main">
         <div class="brand-box">
-          <div class="brand-icon">R</div>
-          <div class="brand-text">
+          <div class="brand-badge-icon">R</div>
+          <div>
             <div class="brand-title">RMUTK SafeWalk</div>
-            <div class="brand-sub">มทร.กรุงเทพ • โหมดติดตามสถานะ</div>
+            <div class="brand-sub">มทร.กรุงเทพ • เฉพาะพื้นที่มหาวิทยาลัย</div>
           </div>
         </div>
 
-        <div class="header-tools">
-          <button id="dayModeBtn" class="btn-day" type="button" aria-pressed="false">
-            <span>☀️</span>
-            <span id="dayModeLabel">โหมดกลางวัน</span>
-          </button>
-        </div>
+        <button id="dayModeBtn" class="btn-day" type="button" aria-pressed="false">
+          <span id="dayModeIcon">☀️</span>
+          <span id="dayModeLabel">โหมดกลางวัน</span>
+        </button>
       </div>
 
       <div class="tab-bar-wrap">
@@ -55,54 +53,47 @@
       </div>
     </header>
 
-    <!-- พื้นที่เนื้อหาหลัก -->
     <main class="content-area">
-      <!-- ช่อง 1: แผนที่ (โฟกัสเฉพาะพื้นที่ มทร.กรุงเทพ) -->
+      <!-- ช่อง 1: แผนที่โฟกัสเฉพาะพื้นที่ มทร.กรุงเทพ (ซ่อนรอบข้าง) -->
       <section id="view-map" class="view-panel active" role="tabpanel" aria-labelledby="tab-map">
         <div id="map"></div>
 
-        <!-- กล่องสัญลักษณ์พับ/กางได้ มุมซ้ายล่าง (ค่าเริ่มต้นพับเป็นปุ่มเล็กๆ บนมือถือ) -->
         <div id="legendBox" class="legend-box">
           <button id="legendToggleBtn" class="legend-toggle-btn" type="button" aria-expanded="false">
             <span>🏷️</span>
-            <span>สัญลักษณ์หมุด</span>
+            <span>สัญลักษณ์</span>
           </button>
           <div id="legendCard" class="legend-card">
             <div class="legend-row">
-              <span class="legend-dot" style="background:#2563eb;"></span>
+              <span class="legend-dot" style="background:#3b82f6;"></span>
               <span>ตำแหน่ง GPS ของคุณ</span>
             </div>
             <div class="legend-row">
-              <span class="legend-dot" style="background:#dc2626;"></span>
-              <span>ควันบุหรี่ / IoT / แจ้งซ้ำหลายจุด (≤ 25 ม.)</span>
+              <span class="legend-dot" style="background:#ef4444;"></span>
+              <span>ควันบุหรี่ / IoT / แจ้งซ้ำ (≤ 25 ม.)</span>
             </div>
             <div class="legend-row">
-              <span class="legend-dot" style="background:#d97706;"></span>
+              <span class="legend-dot" style="background:#f59e0b;"></span>
               <span>ไฟทางดับ / จุดมืด</span>
             </div>
             <div class="legend-row">
-              <span class="legend-dot" style="background:#2563eb;"></span>
+              <span class="legend-dot" style="background:#3b82f6;"></span>
               <span>ปิดถนน / กีดขวางทางเดิน</span>
             </div>
             <div class="legend-row">
-              <span class="legend-dot" style="background:#16a34a;"></span>
-              <span>แก้ไขแล้ว (อยู่บนแผนที่ 10 นาทีก่อนหาย)</span>
+              <span class="legend-dot" style="background:#22c55e;"></span>
+              <span>แก้ไขแล้ว (อยู่บนแผนที่ 10 นาที)</span>
             </div>
           </div>
         </div>
 
-        <!-- ปุ่ม GPS และปุ่มกลับจุดศูนย์กลาง มทร.กรุงเทพ -->
         <div class="map-controls">
-          <button id="centerRmutkBtn" class="map-fab" type="button" title="กลับจุดศูนย์กลาง มทร.กรุงเทพ">
-            🏫
-          </button>
-          <button id="locateMeBtn" class="map-fab" type="button" title="ตำแหน่งปัจจุบันของฉัน (GPS)">
-            🎯
-          </button>
+          <button id="centerRmutkBtn" class="map-fab" type="button" title="กลับจุดศูนย์กลาง มทร.กรุงเทพ">🏫</button>
+          <button id="locateMeBtn" class="map-fab" type="button" title="ตำแหน่งปัจจุบัน (GPS)">🎯</button>
         </div>
       </section>
 
-      <!-- ช่อง 2: เรื่องที่คนแจ้งเข้ามา (เรียงล่าสุดอยู่บนสุด + กดหมุดแล้วพาไปดูรายการ) -->
+      <!-- ช่อง 2: เรื่องที่คนแจ้งเข้ามา (เรียงล่าสุดอยู่บนสุด) -->
       <section id="view-reports" class="view-panel" role="tabpanel" aria-labelledby="tab-reports">
         <div class="feed-container">
           <div class="summary-strip">
@@ -111,16 +102,16 @@
               <div class="summary-label">กำลังดำเนินการ</div>
             </div>
             <div class="summary-box">
-              <div id="statResolved" class="summary-num" style="color: var(--rmutk-green);">0</div>
+              <div id="statResolved" class="summary-num" style="color: var(--rmutk-green-bright);">0</div>
               <div class="summary-label">แก้ไขแล้ว</div>
             </div>
           </div>
 
-          <div class="filter-row" role="group" aria-label="กรองหมวดหมู่">
+          <div class="filter-row">
             <button class="filter-chip active" data-filter="all" type="button" onclick="setFilter('all')">ทั้งหมด</button>
             <button class="filter-chip" data-filter="smoke" type="button" onclick="setFilter('smoke')">🚬 ควันบุหรี่</button>
             <button class="filter-chip" data-filter="dark" type="button" onclick="setFilter('dark')">💡 ไฟทางดับ</button>
-            <button class="filter-chip" data-filter="block" type="button" onclick="setFilter('block')">🚧 กีดขวางทางเดิน</button>
+            <button class="filter-chip" data-filter="block" type="button" onclick="setFilter('block')">🚧 กีดขวาง</button>
             <button class="filter-chip" data-filter="resolved" type="button" onclick="setFilter('resolved')">✅ แก้ไขแล้ว</button>
           </div>
 
@@ -131,35 +122,40 @@
       <!-- ช่อง 3: คู่มือใช้เว็บ -->
       <section id="view-guide" class="view-panel" role="tabpanel" aria-labelledby="tab-guide">
         <div class="guide-container">
+          <div class="campus-banner">
+            <div class="campus-banner-title">🏛️ มทร.กรุงเทพ • SafeWalk Campus Guide</div>
+            <div class="campus-banner-sub">
+              ระบบติดตามจุดเสี่ยงและแจ้งเตือนการสูบบุหรี่ในพื้นที่ มทร.กรุงเทพ แจ้งเหตุผ่าน LINE และติดตามสถานะแบบเรียลไทม์บนหน้าเว็บ
+            </div>
+          </div>
+
           <div class="guide-card">
-            <div class="guide-heading">💬 แอด LINE แจ้งเหตุและรับแจ้งเตือน</div>
+            <div class="guide-heading">💬 แอด LINE แจ้งเหตุ</div>
             <p class="card-desc">
-              หน้าเว็บนี้ใช้สำหรับดูแผนที่และติดตามสถานะอย่างเดียว หากพบจุดเสี่ยงหรือการสูบบุหรี่ในพื้นที่ มทร.กรุงเทพ สามารถแจ้งผ่าน LINE Official Account ของระบบได้ทันที
+              หน้าเว็บนี้ใช้ดูแผนที่และรายการที่แจ้งเข้ามาอย่างเดียว หากพบจุดเสี่ยงหรือควันบุหรี่ ให้ทักแจ้งผ่าน LINE OA ของระบบได้เลยครับ
             </p>
-            <!-- เปลี่ยน href ด้านล่างเป็นลิงก์ LINE OA จริงของโปรเจกต์ -->
             <a class="line-btn" href="https://line.me/R/ti/p/@rmutk-safewalk" target="_blank" rel="noopener noreferrer">
               <span>💚</span>
-              <span>แอด LINE แจ้งเหตุ RMUTK SafeWalk</span>
+              <span>แอด LINE แจ้งเหตุ</span>
             </a>
           </div>
 
           <div class="guide-card">
-            <div class="guide-heading">📍 วิธีการแจ้งเหตุผ่านระบบ</div>
+            <div class="guide-heading">📍 วิธีการแจ้งเหตุ</div>
             <ol class="guide-list">
-              <li>แอด LINE ของระบบแล้วเลือกหมวดหมู่เหตุการณ์ (ควันบุหรี่ / ไฟทางดับ / ปิดถนนหรือกีดขวาง)</li>
-              <li>ส่งตำแหน่ง GPS (Location) หรือระบุจุดสังเกตในพื้นที่ มทร.กรุงเทพ พร้อมรูปภาพประกอบ (ถ้ามี)</li>
-              <li>ระบบจะบันทึกข้อมูลลงฐานข้อมูล และรวมจุดที่อยู่ใกล้กันภายในรัศมี <strong>25 เมตร</strong> ในหมวดเดียวกันให้อัตโนมัติ</li>
-              <li>กลับมาดูสถานะบนแท็บ <strong>แผนที่</strong> หรือ <strong>เรื่องที่คนแจ้งเข้ามา</strong> ได้ตลอดเวลา</li>
+              <li>แอด LINE แล้วเลือกหมวดหมู่ (ควันบุหรี่ / ไฟทางดับ / ปิดถนนหรือกีดขวาง)</li>
+              <li>ส่งตำแหน่ง GPS หรือระบุจุดในพื้นที่ มทร.กรุงเทพ พร้อมรูปถ่าย (ถ้ามี)</li>
+              <li>จุดที่อยู่ใกล้กันภายใน <strong>25 เมตร</strong> ในหมวดเดียวกันจะถูกรวมเป็นจุดเดียวให้อัตโนมัติ</li>
             </ol>
           </div>
 
           <div class="guide-card">
-            <div class="guide-heading">🏷️ ความหมายของหมุดแต่ละสี และระยะเวลาที่แสดงบนแผนที่</div>
+            <div class="guide-heading">🏷️ ความหมายหมุดและระยะเวลาที่อยู่บนแผนที่</div>
             <ul class="guide-list">
-              <li><strong>หมุดสีแดง (🚬 / IoT / แจ้งซ้ำ):</strong> ตรวจพบควันบุหรี่ แจ้งเตือนจากเซ็นเซอร์ IoT หรือมีคนแจ้งซ้ำภายใน 25 เมตร — <strong>อยู่บนแผนที่ต่อเนื่องจนกว่าจะกดแก้ไขแล้ว</strong></li>
-              <li><strong>หมุดสีส้ม (💡 ไฟทางดับ / จุดมืด):</strong> ไฟส่องสว่างขัดข้องหรือทางเดินมืด — <strong>อยู่บนแผนที่จนกว่าจะแก้ไขแล้ว</strong></li>
-              <li><strong>หมุดสีน้ำเงิน (🚧 ปิดถนน / กีดขวาง):</strong> มีสิ่งกีดขวางหรือกิจกรรมปิดทางเดิน — <strong>อยู่บนแผนที่จนกว่าจะแก้ไขแล้ว</strong></li>
-              <li><strong>หมุดสีเขียว (✅ แก้ไขแล้ว):</strong> ทำเครื่องหมายว่าแก้ไขแล้วหรือไม่มีคนสูบแล้ว — <strong>จะค้างบนแผนที่อีก 10 นาที แล้วหายจากแผนที่อัตโนมัติ</strong> (แต่ยังดูประวัติในรายการได้)</li>
+              <li><strong>หมุดแดง (🚬 / IoT / แจ้งซ้ำ):</strong> ควันบุหรี่ แจ้งเตือนจาก IoT หรือแจ้งซ้ำ — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว</strong></li>
+              <li><strong>หมุดส้ม (💡 ไฟทางดับ):</strong> ไฟทางดับหรือทางเดินมืด — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว</strong></li>
+              <li><strong>หมุดน้ำเงิน (🚧 กีดขวาง):</strong> ปิดถนนหรือกีดขวางทางเดิน — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว</strong></li>
+              <li><strong>หมุดเขียว (✅ แก้ไขแล้ว):</strong> <strong>แสดงบนแผนที่ต่ออีก 10 นาที</strong> แล้วหายจากแผนที่อัตโนมัติ</li>
             </ul>
           </div>
         </div>
@@ -172,50 +168,31 @@
   <script src="./supabase-config.js"></script>
 
   <script>
-    /* ===================================================================
-       1. ค่าคงที่และขอบเขตแผนที่เฉพาะพื้นที่ มทร.กรุงเทพ
-       =================================================================== */
     const RMUTK_CENTER = [13.7136, 100.5385];
     const MERGE_RADIUS_METERS = 25;
     const RESOLVE_HIDE_MS = 10 * 60 * 1000;
 
-    // กรอบล็อกพื้นที่รอบ มทร.กรุงเทพ ไม่ให้เลื่อนหลุดออกนอกโซนมหาวิทยาลัย
+    // กรอบเฉพาะพื้นที่ มทร.กรุงเทพ
+    const CAMPUS_SOUTH = 13.7104;
+    const CAMPUS_NORTH = 13.7166;
+    const CAMPUS_WEST  = 100.5360;
+    const CAMPUS_EAST  = 100.5412;
+
     const RMUTK_BOUNDS = L.latLngBounds(
-      [13.7095, 100.5335], // มุมล่างซ้าย (ตะวันตกเฉียงใต้)
-      [13.7178, 100.5435]  // มุมบนขวา (ตะวันออกเฉียงเหนือ)
+      [CAMPUS_SOUTH, CAMPUS_WEST],
+      [CAMPUS_NORTH, CAMPUS_EAST]
     );
 
     const CATEGORY_META = {
-      smoke: {
-        label: 'สูบบุหรี่ในพื้นที่ห้ามสูบ',
-        badgeClass: 'badge-smoke',
-        pinClass: 'pin-smoke',
-        circleColor: '#dc2626',
-        icon: '🚬'
-      },
-      dark: {
-        label: 'ไฟทางดับ / ทางเดินมืด',
-        badgeClass: 'badge-dark',
-        pinClass: 'pin-dark',
-        circleColor: '#d97706',
-        icon: '💡'
-      },
-      block: {
-        label: 'ขายของปิดถนน / ตั้งเต็นท์จัดงาน',
-        badgeClass: 'badge-block',
-        pinClass: 'pin-block',
-        circleColor: '#2563eb',
-        icon: '🚧'
-      }
+      smoke: { label: 'สูบบุหรี่ในพื้นที่ห้ามสูบ', badgeClass: 'badge-smoke', pinClass: 'pin-smoke', circleColor: '#ef4444', icon: '🚬' },
+      dark:  { label: 'ไฟทางดับ / ทางเดินมืด',     badgeClass: 'badge-dark',  pinClass: 'pin-dark',  circleColor: '#f59e0b', icon: '💡' },
+      block: { label: 'ขายของปิดถนน / ตั้งเต็นท์',  badgeClass: 'badge-block', pinClass: 'pin-block', circleColor: '#3b82f6', icon: '🚧' }
     };
 
     let hazards = [];
     let currentFilter = 'all';
     let highlightedId = null;
 
-    /* ===================================================================
-       2. สลับแท็บ (แผนที่ / เรื่องที่คนแจ้งเข้ามา / คู่มือใช้เว็บ)
-       =================================================================== */
     function switchTab(tabName) {
       ['map', 'reports', 'guide'].forEach(function (name) {
         const tabBtn = document.getElementById('tab-' + name);
@@ -227,17 +204,13 @@
       });
 
       if (tabName === 'map') {
-        setTimeout(function () {
-          map.invalidateSize();
-        }, 80);
+        setTimeout(function () { map.invalidateSize(); }, 80);
       } else if (tabName === 'reports') {
         renderReports();
         if (highlightedId) {
           setTimeout(function () {
             const card = document.getElementById('card-' + highlightedId);
-            if (card) {
-              card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+            if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }, 120);
         }
       }
@@ -260,40 +233,43 @@
       renderReports();
     }
 
-    /* ===================================================================
-       3. โหมดกลางวัน (Day Mode)
-       =================================================================== */
     const dayModeBtn = document.getElementById('dayModeBtn');
+    const dayModeIcon = document.getElementById('dayModeIcon');
     const dayModeLabel = document.getElementById('dayModeLabel');
+    let outsideMaskLayer = null;
+
+    function getMaskColor() {
+      return document.body.classList.contains('day-mode') ? '#e2e8f0' : '#090d16';
+    }
+
+    function updateMaskColor() {
+      if (outsideMaskLayer) {
+        outsideMaskLayer.setStyle({
+          color: getMaskColor(),
+          fillColor: getMaskColor(),
+          fillOpacity: 1
+        });
+      }
+    }
 
     function applyDayMode(enabled) {
       document.body.classList.toggle('day-mode', enabled);
       dayModeBtn.classList.toggle('active', enabled);
       dayModeBtn.setAttribute('aria-pressed', String(enabled));
-      dayModeLabel.textContent = enabled ? 'กลางวัน' : 'โหมดกลางวัน';
-      try {
-        localStorage.setItem('rmutk_day_mode', enabled ? '1' : '0');
-      } catch (e) {}
+      dayModeIcon.textContent = enabled ? '🌙' : '☀️';
+      dayModeLabel.textContent = enabled ? 'โหมดกลางคืน' : 'โหมดกลางวัน';
+      updateMaskColor();
+      try { localStorage.setItem('rmutk_day_mode', enabled ? '1' : '0'); } catch (e) {}
     }
 
     dayModeBtn.addEventListener('click', function () {
-      const nextState = !document.body.classList.contains('day-mode');
-      applyDayMode(nextState);
+      applyDayMode(!document.body.classList.contains('day-mode'));
     });
 
-    try {
-      if (localStorage.getItem('rmutk_day_mode') === '1') {
-        applyDayMode(true);
-      }
-    } catch (e) {}
-
-    /* ===================================================================
-       4. แผนที่ Leaflet (โฟกัสเฉพาะพื้นที่ มทร.กรุงเทพ)
-       =================================================================== */
     const map = L.map('map', {
       center: RMUTK_CENTER,
       zoom: 17,
-      minZoom: 16,
+      minZoom: 17,
       maxZoom: 19,
       maxBounds: RMUTK_BOUNDS,
       maxBoundsViscosity: 1.0
@@ -304,15 +280,34 @@
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // วาดกรอบขอบเขตพื้นที่ มทร.กรุงเทพให้เห็นชัดเจน
-    L.rectangle(RMUTK_BOUNDS, {
-      color: '#15803d',
-      weight: 2,
-      fillColor: '#16a34a',
-      fillOpacity: 0.04,
-      dashArray: '6 4',
+    // หน้ากากปิดพื้นที่รอบนอก มทร.กรุงเทพ ให้เหลือเฉพาะบริเวณมหาลัย
+    const worldOuterRing = [
+      [13.7300, 100.5150],
+      [13.7300, 100.5650],
+      [13.6950, 100.5650],
+      [13.6950, 100.5150]
+    ];
+
+    const campusInnerHole = [
+      [CAMPUS_NORTH, CAMPUS_WEST],
+      [CAMPUS_SOUTH, CAMPUS_WEST],
+      [CAMPUS_SOUTH, CAMPUS_EAST],
+      [CAMPUS_NORTH, CAMPUS_EAST]
+    ];
+
+    outsideMaskLayer = L.polygon([worldOuterRing, campusInnerHole], {
+      color: getMaskColor(),
+      weight: 0,
+      fillColor: getMaskColor(),
+      fillOpacity: 1,
       interactive: false
     }).addTo(map);
+
+    try {
+      if (localStorage.getItem('rmutk_day_mode') === '1') {
+        applyDayMode(true);
+      }
+    } catch (e) {}
 
     const markerLayerGroup = L.layerGroup().addTo(map);
 
@@ -320,16 +315,13 @@
       map.setView(RMUTK_CENTER, 17, { animate: true });
     });
 
-    // กล่องสัญลักษณ์พับ/กางได้ (ค่าเริ่มต้นพับบนมือถือ)
     const legendBox = document.getElementById('legendBox');
     const legendToggleBtn = document.getElementById('legendToggleBtn');
-
     legendToggleBtn.addEventListener('click', function () {
       const isOpen = legendBox.classList.toggle('open');
       legendToggleBtn.setAttribute('aria-expanded', String(isOpen));
     });
 
-    // ปุ่ม GPS ตำแหน่งปัจจุบัน
     let userBlueDotMarker = null;
     let userAccuracyCircle = null;
 
@@ -347,15 +339,15 @@
         const dotIcon = L.divIcon({
           className: '',
           html: '<div class="user-blue-dot"></div>',
-          iconSize: [15, 15],
-          iconAnchor: [7.5, 7.5]
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
         });
         userBlueDotMarker = L.marker(e.latlng, { icon: dotIcon, zIndexOffset: 900 })
           .addTo(map)
           .bindPopup('ตำแหน่งปัจจุบันของคุณ');
         userAccuracyCircle = L.circle(e.latlng, {
           radius: radiusMeters,
-          color: '#2563eb',
+          color: '#3b82f6',
           fillColor: '#3b82f6',
           fillOpacity: 0.15,
           weight: 1.5
@@ -370,9 +362,6 @@
       alert('ไม่สามารถดึงตำแหน่ง GPS ได้ กรุณาเปิดสิทธิ์ Location/GPS บนมือถือ');
     });
 
-    /* ===================================================================
-       5. เชื่อมข้อมูลตาราง hazards จาก Supabase
-       =================================================================== */
     function mapRowToHazard(row) {
       return {
         id: row.id,
@@ -425,48 +414,32 @@
     async function markNotResolved(id) {
       const target = hazards.find(function (h) { return h.id === id; });
       if (!target || typeof sbClient === 'undefined' || !sbClient) return;
-      const nextNotFixed = (target.notFixedCount || 0) + 1;
-      const nowIso = new Date().toISOString();
-
       const { error } = await sbClient
         .from('hazards')
         .update({
           is_resolved: false,
           resolved_at: null,
-          not_fixed_count: nextNotFixed,
-          created_at: nowIso
+          not_fixed_count: (target.notFixedCount || 0) + 1,
+          created_at: new Date().toISOString()
         })
         .eq('id', id);
 
-      if (error) {
-        console.error('อัปเดตสถานะไม่สำเร็จ:', error.message);
-        return;
-      }
-      await loadHazardsFromSupabase();
+      if (!error) await loadHazardsFromSupabase();
     }
 
     async function markResolved(id) {
       if (typeof sbClient === 'undefined' || !sbClient) return;
-      const resolvedIso = new Date().toISOString();
-
       const { error } = await sbClient
         .from('hazards')
         .update({
           is_resolved: true,
-          resolved_at: resolvedIso
+          resolved_at: new Date().toISOString()
         })
         .eq('id', id);
 
-      if (error) {
-        console.error('อัปเดตสถานะแก้ไขแล้วไม่สำเร็จ:', error.message);
-        return;
-      }
-      await loadHazardsFromSupabase();
+      if (!error) await loadHazardsFromSupabase();
     }
 
-    /* ===================================================================
-       6. แสดงหมุดบนแผนที่และรายการล่าสุดด้านบนสุด
-       =================================================================== */
     function renderMarkers() {
       markerLayerGroup.clearLayers();
 
@@ -475,13 +448,13 @@
         const meta = CATEGORY_META[h.category] || CATEGORY_META.block;
         const isHighAlert = !h.isResolved && (h.category === 'smoke' || h.isIotAlert || h.reportCount >= 2 || (h.notFixedCount || 0) > 0);
         const pinClass = h.isResolved ? 'pin-done' : (isHighAlert ? 'pin-smoke' : meta.pinClass);
-        const circleColor = h.isResolved ? '#16a34a' : (isHighAlert ? '#dc2626' : meta.circleColor);
+        const circleColor = h.isResolved ? '#22c55e' : (isHighAlert ? '#ef4444' : meta.circleColor);
 
         L.circle([h.lat, h.lng], {
           radius: MERGE_RADIUS_METERS,
           color: circleColor,
           fillColor: circleColor,
-          fillOpacity: h.isResolved ? 0.06 : 0.14,
+          fillOpacity: h.isResolved ? 0.08 : 0.16,
           weight: 1.5,
           dashArray: h.isResolved ? '4 4' : null
         }).addTo(markerLayerGroup);
@@ -489,12 +462,11 @@
         const iconHtml = L.divIcon({
           className: '',
           html: '<div class="pin-marker ' + pinClass + '"><span>' + (h.isResolved ? '✓' : meta.icon) + '</span></div>',
-          iconSize: [26, 26],
-          iconAnchor: [13, 26]
+          iconSize: [24, 24],
+          iconAnchor: [12, 24]
         });
 
         const marker = L.marker([h.lat, h.lng], { icon: iconHtml }).addTo(markerLayerGroup);
-        // กดที่หมุดบนแผนที่แล้วพาไปที่หน้า "เรื่องที่คนแจ้งเข้ามา" และไฮไลต์รายการนั้น
         marker.on('click', function () {
           openReportInList(h.id);
         });
@@ -503,7 +475,6 @@
 
     function renderReports() {
       const listEl = document.getElementById('reportsList');
-      // เรียงเรื่องที่แจ้งล่าสุดอยู่ด้านบนสุดเสมอ
       const sorted = hazards.slice().sort(function (a, b) {
         return b.createdAt - a.createdAt;
       });
@@ -579,24 +550,16 @@
       renderReports();
     }
 
-    // สมัครรับ Realtime ของตาราง hazards เพื่อให้อัปเดตหน้าเว็บไวขึ้น
     if (typeof sbClient !== 'undefined' && sbClient) {
       sbClient
         .channel('hazards-live')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'hazards' },
-          function () {
-            loadHazardsFromSupabase();
-          }
-        )
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'hazards' }, function () {
+          loadHazardsFromSupabase();
+        })
         .subscribe();
     }
 
-    setInterval(function () {
-      loadHazardsFromSupabase();
-    }, 15000);
-
+    setInterval(loadHazardsFromSupabase, 15000);
     renderAll();
     loadHazardsFromSupabase();
   </script>
