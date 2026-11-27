@@ -1,9 +1,806 @@
-<!-- Leaflet JS -->
+<!DOCTYPE html>
+<html lang="th">
+
+<!-- =====================================================================
+     [SECTION 1: HEAD & EXTERNAL LIBS]
+     ตั้งค่าหน้าเว็บ โหลดฟอนต์ และโหลดไลบรารีแผนที่ Leaflet.js
+     ===================================================================== -->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RMUTK SafeWalk — ระบบแผนที่ทางเดินปลอดภัยและแจ้งเตือนการสูบบุหรี่อัตโนมัติ</title>
+
+  <!-- Google Fonts: Prompt -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    /* ===================================================================
+       [SECTION 2: CSS THEME & LAYOUT]
+       กำหนดตัวแปรสี โครงสร้างหน้าจอหลัก แถบรายการ และปุ่มเลื่อน
+       =================================================================== */
+    :root {
+      --rmutk-green-dark: #14532d;
+      --rmutk-green: #15803d;
+      --rmutk-green-soft: #dcfce7;
+      --bg-app: #f8fafc;
+      --bg-panel: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-soft: #e2e8f0;
+      --danger: #dc2626;
+      --danger-soft: #fee2e2;
+      --warning: #d97706;
+      --warning-soft: #fef3c7;
+      --info: #2563eb;
+      --info-soft: #dbeafe;
+      --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+      --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.12);
+      --radius-md: 12px;
+      --radius-lg: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Prompt', sans-serif;
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .navbar {
+      height: 64px;
+      background: linear-gradient(90deg, var(--rmutk-green-dark) 0%, var(--rmutk-green) 100%);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      box-shadow: var(--shadow-sm);
+      z-index: 1000;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #ffffff;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: 0.2px;
+    }
+
+    .brand-subtitle {
+      font-size: 0.74rem;
+      color: #dcfce7;
+      font-weight: 400;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      font-family: 'Prompt', sans-serif;
+      border: none;
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-sim {
+      background: #fef08a;
+      color: #713f12;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    }
+
+    .btn-sim:hover {
+      background: #fde047;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--rmutk-green);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: var(--rmutk-green-dark);
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    .btn-resolve {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      border-radius: 8px;
+    }
+
+    .btn-resolve:hover {
+      background: #d1fae5;
+    }
+
+    .workspace {
+      flex: 1;
+      display: flex;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .map-wrapper {
+      flex: 1;
+      position: relative;
+      height: 100%;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .soft-map .leaflet-tile-pane {
+      filter: saturate(0.72) brightness(1.03) contrast(0.95);
+    }
+
+    .map-legend {
+      position: absolute;
+      bottom: 18px;
+      left: 16px;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      box-shadow: var(--shadow-md);
+      z-index: 800;
+      font-size: 0.78rem;
+      max-width: 268px;
+    }
+
+    .legend-title {
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 8px;
+      font-size: 0.82rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      color: var(--text-main);
+      line-height: 1.3;
+    }
+
+    .legend-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+    }
+
+    .dot-blue-demo {
+      background: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+    }
+
+    .dot-smoke { background: #dc2626; }
+    .dot-dark  { background: #d97706; }
+    .dot-block { background: #2563eb; }
+    .dot-done  { background: #16a34a; }
+
+    .report-modal {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      width: 350px;
+      max-width: calc(100% - 32px);
+      background: var(--bg-panel);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      padding: 16px;
+      z-index: 900;
+      display: none;
+    }
+
+    .report-modal.active {
+      display: block;
+      animation: fadeIn 0.18s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .modal-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--rmutk-green-dark);
+    }
+
+    .close-x {
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: var(--text-main);
+    }
+
+    .form-control {
+      width: 100%;
+      font-family: 'Prompt', sans-serif;
+      font-size: 0.84rem;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 9px;
+      background: #ffffff;
+      color: var(--text-main);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--rmutk-green);
+      box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.15);
+    }
+
+    .coord-pill {
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .image-preview {
+      width: 100%;
+      max-height: 140px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-top: 8px;
+      display: none;
+      border: 1px solid var(--border-soft);
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .sidebar {
+      width: 400px;
+      max-width: 92vw;
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border-soft);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      transition: width 0.25s ease, opacity 0.2s ease;
+      z-index: 850;
+      box-shadow: -4px 0 16px rgba(15, 23, 42, 0.04);
+      flex-shrink: 0;
+    }
+
+    .sidebar.collapsed {
+      width: 0;
+      border-left: none;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-soft);
+      background: #ffffff;
+    }
+
+    .sidebar-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .sidebar-heading {
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .stat-box {
+      background: #f8fafc;
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      padding: 8px;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .sidebar-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px 84px 16px;
+    }
+
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin: 12px 0 8px 0;
+    }
+
+    .section-label:first-child {
+      margin-top: 0;
+    }
+
+    .hazard-card {
+      background: #ffffff;
+      border: 1px solid var(--border-soft);
+      border-left: 5px solid var(--info);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      cursor: pointer;
+    }
+
+    .hazard-card:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .hazard-card.smoke { border-left-color: var(--danger); }
+    .hazard-card.dark  { border-left-color: var(--warning); }
+    .hazard-card.block { border-left-color: var(--info); }
+    .hazard-card.resolved {
+      border-left-color: #16a34a;
+      background: #f8fafc;
+      opacity: 0.88;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .card-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .badge-smoke { background: var(--danger-soft); color: var(--danger); }
+    .badge-dark  { background: var(--warning-soft); color: #b45309; }
+    .badge-block { background: var(--info-soft); color: var(--info); }
+    .badge-done  { background: #dcfce7; color: #15803d; }
+
+    .card-desc {
+      font-size: 0.8rem;
+      color: #475569;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .card-img {
+      width: 100%;
+      max-height: 150px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid var(--border-soft);
+    }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .card-actions {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 28px 14px;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      background: #f8fafc;
+      border-radius: var(--radius-md);
+      border: 1px dashed #cbd5e1;
+    }
+
+    .edge-slide-btn {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      z-index: 1100;
+      background: var(--rmutk-green-dark);
+      color: #ffffff;
+      border: 2px solid #ffffff;
+      border-radius: 999px;
+      padding: 9px 16px;
+      font-family: 'Prompt', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(20, 83, 45, 0.35);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .edge-slide-btn:hover {
+      background: var(--rmutk-green);
+      transform: translateY(-2px);
+    }
+
+    /* ===================================================================
+       [SECTION 3: CSS MAP PINS & GPS BLUE DOT]
+       สไตล์หมุดจุดเสี่ยง จุดสีฟ้ากะพริบตำแหน่งเรา และปุ่มเล็ง GPS
+       =================================================================== */
+    .pin-marker {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      border: 2.5px solid #ffffff;
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.28);
+    }
+
+    .pin-marker span {
+      transform: rotate(45deg);
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .pin-smoke { background: #dc2626; }
+    .pin-dark  { background: #d97706; }
+    .pin-block { background: #2563eb; }
+    .pin-done  { background: #16a34a; }
+
+    .user-blue-dot {
+      width: 16px;
+      height: 16px;
+      background: #2563eb;
+      border: 3px solid #ffffff;
+      border-radius: 50%;
+      animation: pulseBlueDot 2s infinite;
+    }
+
+    @keyframes pulseBlueDot {
+      0% {
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.45), 0 2px 6px rgba(0, 0, 0, 0.25);
+      }
+      70% {
+        box-shadow: 0 0 0 14px rgba(37, 99, 235, 0), 0 2px 6px rgba(0, 0, 0, 0.25);
+      }
+      100% {
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0), 0 2px 6px rgba(0, 0, 0, 0.25);
+      }
+    }
+
+    .locate-me-btn {
+      position: absolute;
+      bottom: 66px;
+      right: 16px;
+      z-index: 850;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #ffffff;
+      color: var(--info);
+      border: 1.5px solid #cbd5e1;
+      box-shadow: var(--shadow-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: all 0.2s ease;
+    }
+
+    .locate-me-btn:hover {
+      background: #eff6ff;
+      border-color: var(--info);
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 860px) {
+      .brand-subtitle {
+        display: none;
+      }
+      .brand-title {
+        font-size: 0.94rem;
+      }
+      .btn-sim {
+        padding: 7px 10px;
+        font-size: 0.76rem;
+      }
+      .sidebar {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 360px;
+        max-width: 90vw;
+      }
+      .map-legend {
+        bottom: 66px;
+        left: 12px;
+        padding: 10px 12px;
+        max-width: 225px;
+      }
+    }
+  </style>
+</head>
+
+<!-- =====================================================================
+     [SECTION 4: HTML BODY STRUCTURE]
+     โครงสร้างหน้าเว็บหลัก แผนที่ ปุ่ม GPS คำอธิบาย และแถบรายการ
+     ===================================================================== -->
+<body>
+  <header class="navbar">
+    <div class="brand">
+      <div class="brand-logo" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="32" height="32">
+          <path d="M32 4C19.85 4 10 13.85 10 26c0 16.5 22 34 22 34s22-17.5 22-34C54 13.85 44.15 4 32 4z" fill="#15803d" />
+          <circle cx="32" cy="25" r="11" fill="#ffffff" />
+          <path d="M32 18v8M32 30v1.5" stroke="#dc2626" stroke-width="3.2" stroke-linecap="round" />
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title">RMUTK SafeWalk</div>
+        <div class="brand-subtitle">ระบบแผนที่ทางเดินปลอดภัยและแจ้งเตือนการสูบบุหรี่อัตโนมัติ (มทร.กรุงเทพ)</div>
+      </div>
+    </div>
+
+    <div class="nav-actions">
+      <button id="simIotBtn" class="btn btn-sim" type="button">
+        <span>🚬</span>
+        <span>จำลอง IoT ตรวจจับควันบุหรี่</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="map-wrapper">
+      <div id="map" class="soft-map"></div>
+
+      <button id="locateMeBtn" class="locate-me-btn" type="button" title="ตำแหน่งปัจจุบันของฉัน (GPS)">
+        🎯
+      </button>
+
+      <div class="map-legend">
+        <div class="legend-title">สัญลักษณ์บนแผนที่</div>
+        <div class="legend-item">
+          <span class="dot dot-blue-demo"></span>
+          <span>ตำแหน่งปัจจุบันของเรา (กดปุ่ม 🎯 เพื่อระบุพิกัด)</span>
+        </div>
+        <div class="legend-item">
+          <span class="dot dot-smoke"></span>
+          <span>แจ้งเตือนควันบุหรี่อัตโนมัติ / มีคนแจ้งหลายคน (≤ 25 ม.)</span>
+        </div>
+        <div class="legend-item">
+          <span class="dot dot-dark"></span>
+          <span>ไฟทางดับ / จุดมืด (รอแก้ไข)</span>
+        </div>
+        <div class="legend-item">
+          <span class="dot dot-block"></span>
+          <span>ปิดถนน / กิจกรรมกีดขวางทางเดิน</span>
+        </div>
+        <div class="legend-item">
+          <span class="dot dot-done"></span>
+          <span>แก้ไขเสร็จสิ้นแล้ว (ซ่อนใน 5 นาที)</span>
+        </div>
+      </div>
+
+      <div id="reportModal" class="report-modal" role="dialog" aria-label="แจ้งจุดเสี่ยงบนแผนที่">
+        <div class="modal-header">
+          <div class="modal-title">📍 แจ้งจุดเสี่ยง / ปักหมุดบนแผนที่</div>
+          <button id="closeModalBtn" class="close-x" type="button" title="ปิดหน้าต่าง">×</button>
+        </div>
+
+        <form id="reportForm">
+          <div class="form-group">
+            <label class="form-label" for="hazardCategory">หมวดหมู่เหตุการณ์</label>
+            <select id="hazardCategory" class="form-control" required>
+              <option value="smoke">สูบบุหรี่ในพื้นที่ห้ามสูบ</option>
+              <option value="dark">ไฟทางดับ / ทางเดินมืด</option>
+              <option value="block">ขายของปิดถนน / ตั้งเต็นท์จัดงาน</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="hazardImage">อัปโหลดรูปภาพประกอบ (ไม่บังคับ — ไม่ใส่รูปก็ส่งได้)</label>
+            <input id="hazardImage" class="form-control" type="file" accept="image/*" />
+            <img id="imagePreview" class="image-preview" alt="ตัวอย่างรูปภาพ" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="hazardDesc">รายละเอียดเพิ่มเติม</label>
+            <textarea id="hazardDesc" class="form-control" rows="2" placeholder="ระบุจุดสังเกต เช่น หน้าอาคารเรียน หรือทางเดินเชื่อม..."></textarea>
+          </div>
+
+          <div class="coord-pill">
+            <span>พิกัดที่คลิกเลือกบนแผนที่:</span>
+            <strong id="pickedCoords">-</strong>
+          </div>
+
+          <div class="modal-footer">
+            <button id="cancelReportBtn" class="btn btn-secondary" type="button">ยกเลิก</button>
+            <button class="btn btn-primary" type="submit">บันทึกแจ้งเหตุ</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-top-row">
+          <div class="sidebar-heading">รายการแจ้งเตือนและจุดเสี่ยง</div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-box">
+            <div id="statActive" class="stat-num" style="color: var(--danger);">0</div>
+            <div class="stat-label">กำลังดำเนินการ</div>
+          </div>
+          <div class="stat-box">
+            <div id="statSmoke" class="stat-num" style="color: #b91c1c;">0</div>
+            <div class="stat-label">เคสควันบุหรี่</div>
+          </div>
+          <div class="stat-box">
+            <div id="statResolved" class="stat-num" style="color: var(--rmutk-green);">0</div>
+            <div class="stat-label">แก้ไขแล้ว</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="sidebarBody" class="sidebar-body"></div>
+    </aside>
+  </main>
+
+  <button id="edgeSlideBtn" class="edge-slide-btn" type="button" aria-expanded="true">
+    <span id="slideArrow">▶</span>
+    <span id="slideLabel">เลื่อน</span>
+  </button>
+
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
     /* ===================================================================
        [SECTION 5: STATE & INITIAL DEMO DATA]
+       กำหนดค่าคงที่ ตัวแปรสถานะ และข้อมูลจำลองเริ่มต้น
        =================================================================== */
     const RMUTK_CENTER = [13.7136, 100.5385];
     const MERGE_RADIUS_METERS = 25;
@@ -75,6 +872,7 @@
 
     /* ===================================================================
        [SECTION 6: MAP INIT & GPS LOCATION]
+       สร้างแผนที่ Leaflet และจัดการจุดสีฟ้าตำแหน่งผู้ใช้ (GPS Blue Dot)
        =================================================================== */
     const map = L.map('map', {
       center: RMUTK_CENTER,
@@ -137,10 +935,13 @@
 
     /* ===================================================================
        [SECTION 7: SPATIAL & LIFECYCLE LOGIC]
+       คำนวณระยะทาง Haversine รวมหมุด 25 เมตร และซ่อนหมุดที่แก้ไขเสร็จใน 5 นาที
        =================================================================== */
     function getDistanceMeters(lat1, lng1, lat2, lng2) {
       const R = 6371000;
-      const toRad = function (deg) { return (deg * Math.PI) / 180; };
+      const toRad = function (deg) {
+        return (deg * Math.PI) / 180;
+      };
       const dLat = toRad(lat2 - lat1);
       const dLng = toRad(lng2 - lng1);
       const a =
@@ -214,7 +1015,9 @@
     }
 
     function markResolved(id) {
-      const target = hazards.find(function (h) { return h.id === id; });
+      const target = hazards.find(function (h) {
+        return h.id === id;
+      });
       if (!target) return;
       target.isResolved = true;
       target.resolvedAt = Date.now();
@@ -223,6 +1026,7 @@
 
     /* ===================================================================
        [SECTION 8: UI RENDERING & REPORTING]
+       วาดหมุดและวงรัศมีบนแผนที่ แสดงรายการด้านขวา และจัดการฟอร์มแจ้งเหตุ
        =================================================================== */
     function renderMarkers() {
       markerLayerGroup.clearLayers();
@@ -275,9 +1079,15 @@
 
     function renderSidebar() {
       const sidebarBody = document.getElementById('sidebarBody');
-      const activeItems = hazards.filter(function (h) { return !h.isResolved; });
-      const resolvedItems = hazards.filter(function (h) { return h.isResolved; });
-      const smokeCount = activeItems.filter(function (h) { return h.category === 'smoke' || h.isIotAlert; }).length;
+      const activeItems = hazards.filter(function (h) {
+        return !h.isResolved;
+      });
+      const resolvedItems = hazards.filter(function (h) {
+        return h.isResolved;
+      });
+      const smokeCount = activeItems.filter(function (h) {
+        return h.category === 'smoke' || h.isIotAlert;
+      }).length;
 
       document.getElementById('statActive').textContent = activeItems.length;
       document.getElementById('statSmoke').textContent = smokeCount;
@@ -359,7 +1169,9 @@
     }
 
     window.focusHazard = function (id) {
-      const target = hazards.find(function (h) { return h.id === id; });
+      const target = hazards.find(function (h) {
+        return h.id === id;
+      });
       if (!target) return;
       map.setView([target.lat, target.lng], 18, { animate: true });
     };
@@ -477,3 +1289,5 @@
 
     renderAll();
   </script>
+</body>
+</html>
