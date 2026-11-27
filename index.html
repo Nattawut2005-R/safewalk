@@ -541,6 +541,55 @@
       box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
     }
 
+    /* กล่องเทสแจ้งเหตุชั่วคราวในหน้าคู่มือ */
+    .test-box-body {
+      display: none;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border-soft);
+    }
+
+    .test-box.open .test-box-body {
+      display: block;
+    }
+
+    .test-field {
+      margin-bottom: 8px;
+    }
+
+    .test-label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--text-main);
+    }
+
+    .test-input,
+    .test-select {
+      width: 100%;
+      min-height: 36px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border-soft);
+      background: var(--bg-subtle);
+      color: var(--text-main);
+      font-family: 'Prompt', sans-serif;
+      font-size: 0.76rem;
+    }
+
+    .test-coords-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .test-status-msg {
+      margin-top: 6px;
+      font-size: 0.72rem;
+      color: var(--rmutk-green-bright);
+    }
+
     .empty-box {
       background: var(--bg-card);
       border: 1px dashed var(--border-soft);
@@ -665,13 +714,54 @@
         </div>
       </section>
 
-      <!-- ช่อง 3: คู่มือใช้เว็บ -->
+      <!-- ช่อง 3: คู่มือใช้เว็บ + กล่องเทสแจ้งเหตุชั่วคราว -->
       <section id="view-guide" class="view-panel" role="tabpanel" aria-labelledby="tab-guide">
         <div class="guide-container">
           <div class="campus-banner">
             <div class="campus-banner-title">🏛️ มทร.กรุงเทพ • SafeWalk Campus Guide</div>
             <div class="campus-banner-sub">
               ระบบติดตามจุดเสี่ยงและแจ้งเตือนการสูบบุหรี่ในพื้นที่ มทร.กรุงเทพ แจ้งเหตุผ่าน LINE และติดตามสถานะแบบเรียลไทม์บนหน้าเว็บ
+            </div>
+          </div>
+
+          <!-- กล่องเทสแจ้งเหตุชั่วคราว (พับ/กางได้) -->
+          <div id="testBox" class="guide-card test-box">
+            <div class="card-top" style="margin-bottom:0;">
+              <div class="guide-heading" style="margin-bottom:0;">🧪 โหมดเทสลองแจ้งเหตุ (ชั่วคราว)</div>
+              <button id="toggleTestBoxBtn" class="pill-btn btn-action" type="button">เปิดกล่องเทส</button>
+            </div>
+
+            <div class="test-box-body">
+              <div class="test-field">
+                <label class="test-label" for="testCategory">หมวดหมู่</label>
+                <select id="testCategory" class="test-select">
+                  <option value="smoke">🚬 สูบบุหรี่ในพื้นที่ห้ามสูบ</option>
+                  <option value="dark">💡 ไฟทางดับ / ทางเดินมืด</option>
+                  <option value="block">🚧 ขายของปิดถนน / ตั้งเต็นท์</option>
+                </select>
+              </div>
+
+              <div class="test-coords-row">
+                <div class="test-field">
+                  <label class="test-label" for="testLat">ละติจูด (Lat)</label>
+                  <input id="testLat" class="test-input" type="number" step="any" value="13.7136" />
+                </div>
+                <div class="test-field">
+                  <label class="test-label" for="testLng">ลองจิจูด (Lng)</label>
+                  <input id="testLng" class="test-input" type="number" step="any" value="100.5385" />
+                </div>
+              </div>
+
+              <div class="test-field">
+                <label class="test-label" for="testDesc">รายละเอียดทดสอบ</label>
+                <input id="testDesc" class="test-input" type="text" placeholder="เช่น ทดสอบแจ้งเหตุหน้าอาคารเรียน" />
+              </div>
+
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <button id="sendTestBtn" class="pill-btn btn-action" type="button">ส่งข้อมูลเทสลง Supabase</button>
+                <button id="randomRmutkSpotBtn" class="pill-btn btn-action" type="button">สุ่มจุดใน มทร.</button>
+              </div>
+              <div id="testStatusMsg" class="test-status-msg"></div>
             </div>
           </div>
 
@@ -863,6 +953,116 @@
 
     map.on('locationerror', function () {
       alert('ไม่สามารถดึงตำแหน่ง GPS ได้ กรุณาเปิดสิทธิ์ Location/GPS บนมือถือ');
+    });
+
+    /* ===================================================================
+       กล่องเทสแจ้งเหตุชั่วคราว (ส่งเข้าตาราง hazards บน Supabase โดยตรง)
+       =================================================================== */
+    const testBox = document.getElementById('testBox');
+    const toggleTestBoxBtn = document.getElementById('toggleTestBoxBtn');
+    const sendTestBtn = document.getElementById('sendTestBtn');
+    const randomRmutkSpotBtn = document.getElementById('randomRmutkSpotBtn');
+    const testStatusMsg = document.getElementById('testStatusMsg');
+
+    toggleTestBoxBtn.addEventListener('click', function () {
+      const isOpen = testBox.classList.toggle('open');
+      toggleTestBoxBtn.textContent = isOpen ? 'ซ่อนกล่องเทส' : 'เปิดกล่องเทส';
+    });
+
+    randomRmutkSpotBtn.addEventListener('click', function () {
+      const lat = (13.7118 + Math.random() * 0.0032).toFixed(6);
+      const lng = (100.5370 + Math.random() * 0.0028).toFixed(6);
+      document.getElementById('testLat').value = lat;
+      document.getElementById('testLng').value = lng;
+    });
+
+    function distanceMeters(lat1, lng1, lat2, lng2) {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    sendTestBtn.addEventListener('click', async function () {
+      if (typeof sbClient === 'undefined' || !sbClient) {
+        testStatusMsg.textContent = 'ไม่พบการเชื่อมต่อ Supabase (sbClient)';
+        return;
+      }
+
+      const category = document.getElementById('testCategory').value;
+      const lat = parseFloat(document.getElementById('testLat').value);
+      const lng = parseFloat(document.getElementById('testLng').value);
+      const rawDesc = document.getElementById('testDesc').value.trim();
+
+      if (Number.isNaN(lat) || Number.isNaN(lng)) {
+        testStatusMsg.textContent = 'กรุณากรอกพิกัด Lat และ Lng ให้ถูกต้อง';
+        return;
+      }
+
+      sendTestBtn.disabled = true;
+      testStatusMsg.textContent = 'กำลังส่งข้อมูลเทส...';
+
+      const nowIso = new Date().toISOString();
+      const existingNear = hazards.find(function (h) {
+        return !h.isResolved && h.category === category && distanceMeters(h.lat, h.lng, lat, lng) <= MERGE_RADIUS_METERS;
+      });
+
+      if (existingNear) {
+        const nextCount = (existingNear.reportCount || 1) + 1;
+        const mergedDesc = rawDesc
+          ? (existingNear.description ? existingNear.description + ' • ' + rawDesc : rawDesc)
+          : existingNear.description;
+
+        const { error } = await sbClient
+          .from('hazards')
+          .update({
+            report_count: nextCount,
+            description: mergedDesc,
+            created_at: nowIso
+          })
+          .eq('id', existingNear.id);
+
+        sendTestBtn.disabled = false;
+        if (error) {
+          testStatusMsg.textContent = 'อัปเดตจุดใกล้เคียงไม่สำเร็จ: ' + error.message;
+          return;
+        }
+        testStatusMsg.textContent = 'รวมเข้ากับจุดใกล้เคียงในรัศมี 25 ม. เรียบร้อย (' + existingNear.id + ')';
+        await loadHazardsFromSupabase();
+        return;
+      }
+
+      const newId = 'HZ-TEST-' + Date.now().toString().slice(-6);
+      const { error } = await sbClient
+        .from('hazards')
+        .insert({
+          id: newId,
+          category: category,
+          lat: lat,
+          lng: lng,
+          description: rawDesc || ('[เทสระบบ] ' + (CATEGORY_META[category]?.label || category)),
+          image_url: '',
+          report_count: 1,
+          not_fixed_count: 0,
+          is_iot_alert: false,
+          is_resolved: false,
+          resolved_at: null,
+          created_at: nowIso
+        });
+
+      sendTestBtn.disabled = false;
+      if (error) {
+        testStatusMsg.textContent = 'ส่งข้อมูลเทสไม่สำเร็จ: ' + error.message;
+        return;
+      }
+
+      document.getElementById('testDesc').value = '';
+      testStatusMsg.textContent = 'ส่งข้อมูลเทสสำเร็จ (' + newId + ') — ไปดูที่แท็บแผนที่หรือเรื่องที่คนแจ้งเข้ามาได้เลย';
+      await loadHazardsFromSupabase();
     });
 
     function mapRowToHazard(row) {
