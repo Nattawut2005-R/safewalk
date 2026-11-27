@@ -1,0 +1,647 @@
+/* =====================================================================
+   RMUTK SafeWalk — Stylesheet (Mobile-First + Day Mode)
+   ===================================================================== */
+:root {
+  --rmutk-green-dark: #14532d;
+  --rmutk-green: #15803d;
+  --rmutk-green-bright: #16a34a;
+  --rmutk-green-soft: #dcfce7;
+  --bg-app: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-subtle: #f8fafc;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-soft: #e2e8f0;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --warning: #d97706;
+  --warning-soft: #fef3c7;
+  --info: #2563eb;
+  --info-soft: #dbeafe;
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 8px 22px rgba(15, 23, 42, 0.12);
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --map-filter: saturate(0.8) brightness(1.02) contrast(0.98);
+}
+
+/* โหมดกลางวัน (สว่างคมชัดเป็นพิเศษ) */
+body.day-mode {
+  --bg-app: #ffffff;
+  --bg-card: #ffffff;
+  --bg-subtle: #f0fdf4;
+  --text-main: #052e16;
+  --text-muted: #3f6212;
+  --border-soft: #bbf7d0;
+  --shadow-sm: 0 2px 8px rgba(20, 83, 45, 0.08);
+  --shadow-md: 0 8px 24px rgba(20, 83, 45, 0.14);
+  --map-filter: saturate(1.08) brightness(1.06) contrast(1.03);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  height: 100%;
+  font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  overflow: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.app-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* แถบด้านบน: กล่องสีขาว + แถบ/ขอบสีเขียว */
+.top-header {
+  background: var(--bg-card);
+  border-bottom: 3px solid var(--rmutk-green);
+  box-shadow: var(--shadow-sm);
+  z-index: 1000;
+  flex-shrink: 0;
+}
+
+.header-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.brand-box {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--rmutk-green);
+  border-radius: 12px;
+  padding: 5px 10px;
+  min-width: 0;
+}
+
+.brand-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--rmutk-green-soft);
+  color: var(--rmutk-green-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.brand-text {
+  min-width: 0;
+}
+
+.brand-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--rmutk-green-dark);
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.brand-sub {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-day {
+  min-height: 38px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1.5px solid var(--rmutk-green);
+  background: var(--bg-card);
+  color: var(--rmutk-green-dark);
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.btn-day.active,
+.btn-day:hover {
+  background: var(--rmutk-green);
+  color: #ffffff;
+}
+
+/* แถบเมนู 3 ช่องด้านบนซ้าย: กล่องสีขาว + เส้นแถบสีเขียวด้านล่างช่องที่เลือก */
+.tab-bar-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  background: var(--bg-subtle);
+  border-top: 1px solid var(--border-soft);
+}
+
+.nav-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+  max-width: 680px;
+}
+
+.nav-tab {
+  flex: 1;
+  min-height: 44px;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  border-bottom: 3px solid transparent;
+  border-radius: 10px 10px 0 0;
+  padding: 8px 8px;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  text-align: center;
+  line-height: 1.2;
+  transition: all 0.15s ease;
+}
+
+.nav-tab.active {
+  background: #ffffff;
+  color: var(--rmutk-green-dark);
+  border-color: var(--rmutk-green);
+  border-bottom: 4px solid var(--rmutk-green-bright);
+  box-shadow: 0 -2px 6px rgba(21, 128, 61, 0.08);
+}
+
+.tab-badge {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+/* พื้นที่เนื้อหาหลัก */
+.content-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.view-panel {
+  display: none;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.view-panel.active {
+  display: block;
+}
+
+#view-map.active {
+  display: block;
+  overflow: hidden;
+  position: relative;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.leaflet-tile-pane {
+  filter: var(--map-filter);
+  transition: filter 0.2s ease;
+}
+
+/* ปุ่มควบคุมแผนที่ด้านขวาล่าง (GPS + กลับจุดศูนย์กลาง มทร.) */
+.map-controls {
+  position: absolute;
+  bottom: 18px;
+  right: 12px;
+  z-index: 850;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.map-fab {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--rmutk-green-dark);
+  border: 2px solid var(--rmutk-green);
+  box-shadow: var(--shadow-md);
+  font-family: 'Prompt', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.map-fab:active {
+  transform: scale(0.95);
+  background: var(--rmutk-green-soft);
+}
+
+/* กล่องสัญลักษณ์บนแผนที่: พับ/กางได้ มุมซ้ายล่าง (ค่าเริ่มต้นพับเป็นปุ่มเล็กๆ บนมือถือ) */
+.legend-box {
+  position: absolute;
+  bottom: 18px;
+  left: 12px;
+  z-index: 850;
+  max-width: calc(100vw - 80px);
+}
+
+.legend-toggle-btn {
+  min-height: 36px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--rmutk-green-dark);
+  border: 1.5px solid var(--rmutk-green);
+  box-shadow: var(--shadow-md);
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-card {
+  display: none;
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1.5px solid var(--rmutk-green);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  box-shadow: var(--shadow-md);
+  font-size: 0.74rem;
+  max-width: 260px;
+}
+
+.legend-box.open .legend-card {
+  display: block;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: #1e293b;
+}
+
+.legend-row:last-child {
+  margin-bottom: 0;
+}
+
+.legend-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+  flex-shrink: 0;
+}
+
+/* หมุดบนแผนที่: ขนาดเล็กลงพอดีบนมือถือ แต่มีพื้นที่สัมผัสกดง่าย */
+.pin-marker {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  border: 2px solid #ffffff;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ขยายพื้นที่กดรอบหมุดบนมือถือให้ใช้นิ้วจิ้มง่ายไม่พลาด */
+.pin-marker::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  border-radius: 50%;
+}
+
+.pin-marker span {
+  transform: rotate(45deg);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.pin-smoke { background: #dc2626; }
+.pin-dark  { background: #d97706; }
+.pin-block { background: #2563eb; }
+.pin-done  { background: #16a34a; }
+
+.user-blue-dot {
+  width: 15px;
+  height: 15px;
+  background: #2563eb;
+  border: 2.5px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.28);
+}
+
+/* ช่อง 2: หน้าเรื่องที่คนแจ้งเข้ามา */
+.feed-container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 12px 12px 32px 12px;
+}
+
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.summary-box {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-soft);
+  border-bottom: 3px solid var(--rmutk-green);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.summary-num {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--rmutk-green-dark);
+}
+
+.summary-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.filter-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+.filter-chip {
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.filter-chip.active {
+  background: var(--rmutk-green);
+  color: #ffffff;
+  border-color: var(--rmutk-green);
+}
+
+.hazard-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-left: 5px solid var(--info);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.hazard-card.smoke { border-left-color: var(--danger); }
+.hazard-card.dark  { border-left-color: var(--warning); }
+.hazard-card.block { border-left-color: var(--info); }
+.hazard-card.resolved { border-left-color: var(--rmutk-green-bright); opacity: 0.92; }
+
+.hazard-card.highlighted {
+  border: 2px solid var(--rmutk-green-bright);
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.2);
+}
+
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.card-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.badge-smoke { background: var(--danger-soft); color: var(--danger); }
+.badge-dark  { background: var(--warning-soft); color: #b45309; }
+.badge-block { background: var(--info-soft); color: var(--info); }
+.badge-done  { background: var(--rmutk-green-soft); color: var(--rmutk-green-dark); }
+
+.card-desc {
+  font-size: 0.8rem;
+  color: var(--text-main);
+  margin-bottom: 8px;
+  line-height: 1.45;
+}
+
+.card-img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border-soft);
+}
+
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-soft);
+}
+
+.btn-action {
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-family: 'Prompt', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-not-fixed {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
+
+.btn-resolve {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.btn-view-map {
+  background: var(--bg-subtle);
+  color: var(--rmutk-green-dark);
+  border: 1px solid var(--rmutk-green);
+}
+
+/* ช่อง 3: หน้าคู่มือใช้เว็บ */
+.guide-container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px 12px 32px 12px;
+}
+
+.guide-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-top: 4px solid var(--rmutk-green);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.guide-heading {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--rmutk-green-dark);
+  margin-bottom: 8px;
+}
+
+.guide-list {
+  padding-left: 18px;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.guide-list li {
+  margin-bottom: 5px;
+}
+
+.line-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: #06c755;
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.empty-box {
+  background: var(--bg-card);
+  border: 1px dashed #cbd5e1;
+  border-radius: var(--radius-md);
+  padding: 24px 14px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+@media (min-width: 768px) {
+  .header-main {
+    padding: 10px 18px;
+  }
+  .brand-title {
+    font-size: 1.04rem;
+  }
+  .nav-tab {
+    font-size: 0.84rem;
+    padding: 8px 14px;
+  }
+  .pin-marker {
+    width: 30px;
+    height: 30px;
+  }
+  .pin-marker span {
+    font-size: 14px;
+  }
+  .legend-box {
+    bottom: 22px;
+    left: 16px;
+  }
+}
