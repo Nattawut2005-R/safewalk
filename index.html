@@ -34,6 +34,8 @@
       --warning-soft: rgba(245, 158, 11, 0.18);
       --info: #3b82f6;
       --info-soft: rgba(59, 130, 246, 0.18);
+      --other: #8b5cf6;
+      --other-soft: rgba(139, 92, 246, 0.18);
       --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
       --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.45);
       --radius-md: 12px;
@@ -334,6 +336,7 @@
     .pin-smoke { background: #ef4444; }
     .pin-dark  { background: #f59e0b; }
     .pin-block { background: #3b82f6; }
+    .pin-other { background: #8b5cf6; }
     .pin-done  { background: #22c55e; }
 
     .user-blue-dot {
@@ -411,6 +414,7 @@
     .hazard-card.smoke { border-left-color: var(--danger); }
     .hazard-card.dark  { border-left-color: var(--warning); }
     .hazard-card.block { border-left-color: var(--info); }
+    .hazard-card.other { border-left-color: var(--other); }
     .hazard-card.resolved { border-left-color: var(--rmutk-green-bright); opacity: 0.92; }
 
     .hazard-card.highlighted {
@@ -469,6 +473,7 @@
     .badge-smoke { background: var(--danger-soft); color: var(--danger); }
     .badge-dark  { background: var(--warning-soft); color: var(--warning); }
     .badge-block { background: var(--info-soft); color: var(--info); }
+    .badge-other { background: var(--other-soft); color: var(--other); }
     .badge-done  { background: var(--rmutk-green-soft); color: #166534; }
 
     .card-desc {
@@ -676,6 +681,10 @@
               <span>ปิดถนน / กีดขวางทางเดิน</span>
             </div>
             <div class="legend-row">
+              <span class="legend-dot" style="background:#8b5cf6;"></span>
+              <span>อื่นๆ</span>
+            </div>
+            <div class="legend-row">
               <span class="legend-dot" style="background:#22c55e;"></span>
               <span>แก้ไขแล้ว (อยู่บนแผนที่ 10 นาที)</span>
             </div>
@@ -707,6 +716,7 @@
             <button class="pill-btn filter-chip" data-filter="smoke" type="button" onclick="setFilter('smoke')">🚬 ควันบุหรี่</button>
             <button class="pill-btn filter-chip" data-filter="dark" type="button" onclick="setFilter('dark')">💡 ไฟทางดับ</button>
             <button class="pill-btn filter-chip" data-filter="block" type="button" onclick="setFilter('block')">🚧 กีดขวาง</button>
+            <button class="pill-btn filter-chip" data-filter="other" type="button" onclick="setFilter('other')">⚠️ อื่นๆ</button>
             <button class="pill-btn filter-chip" data-filter="resolved" type="button" onclick="setFilter('resolved')">✅ แก้ไขแล้ว</button>
           </div>
 
@@ -738,6 +748,7 @@
                   <option value="smoke">🚬 สูบบุหรี่ในพื้นที่ห้ามสูบ</option>
                   <option value="dark">💡 ไฟทางดับ / ทางเดินมืด</option>
                   <option value="block">🚧 ขายของปิดถนน / ตั้งเต็นท์</option>
+                  <option value="other">⚠️ อื่นๆ</option>
                 </select>
               </div>
 
@@ -779,7 +790,7 @@
           <div class="guide-card">
             <div class="guide-heading">📍 วิธีการแจ้งเหตุ</div>
             <ol class="guide-list">
-              <li>แอด LINE แล้วเลือกหมวดหมู่ (ควันบุหรี่ / ไฟทางดับ / ปิดถนนหรือกีดขวาง)</li>
+              <li>แอด LINE แล้วเลือกหมวดหมู่ (ควันบุหรี่ / ไฟทางดับ / กีดขวาง / อื่นๆ)</li>
               <li>ส่งตำแหน่ง GPS หรือระบุจุดในพื้นที่ มทร.กรุงเทพ พร้อมรูปถ่าย (ถ้ามี)</li>
               <li>จุดที่อยู่ใกล้กันภายใน <strong>25 เมตร</strong> ในหมวดเดียวกันจะถูกรวมเป็นจุดเดียวให้อัตโนมัติ</li>
             </ol>
@@ -791,6 +802,7 @@
               <li><strong>หมุดแดง (🚬 / IoT / แจ้งซ้ำ):</strong> ควันบุหรี่ แจ้งเตือนจาก IoT หรือแจ้งซ้ำ — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว หรือครบ 10 นาที</strong></li>
               <li><strong>หมุดส้ม (💡 ไฟทางดับ):</strong> ไฟทางดับหรือทางเดินมืด — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว หรือครบ 10 นาที</strong></li>
               <li><strong>หมุดน้ำเงิน (🚧 กีดขวาง):</strong> ปิดถนนหรือกีดขวางทางเดิน — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว หรือครบ 10 นาที</strong></li>
+              <li><strong>หมุดม่วง (⚠️ อื่นๆ):</strong> เหตุการณ์อื่นๆ ในพื้นที่ — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว หรือครบ 10 นาที</strong></li>
               <li><strong>หมุดเขียว (✅ แก้ไขแล้ว):</strong> <strong>แสดงบนแผนที่ต่ออีก 10 นาที</strong> แล้วหายจากแผนที่อัตโนมัติ</li>
             </ul>
           </div>
@@ -818,7 +830,8 @@
     const CATEGORY_META = {
       smoke: { label: 'สูบบุหรี่ในพื้นที่ห้ามสูบ', badgeClass: 'badge-smoke', pinClass: 'pin-smoke', circleColor: '#ef4444', icon: '🚬' },
       dark:  { label: 'ไฟทางดับ / ทางเดินมืด',     badgeClass: 'badge-dark',  pinClass: 'pin-dark',  circleColor: '#f59e0b', icon: '💡' },
-      block: { label: 'ขายของปิดถนน / ตั้งเต็นท์',  badgeClass: 'badge-block', pinClass: 'pin-block', circleColor: '#3b82f6', icon: '🚧' }
+      block: { label: 'ขายของปิดถนน / ตั้งเต็นท์',  badgeClass: 'badge-block', pinClass: 'pin-block', circleColor: '#3b82f6', icon: '🚧' },
+      other: { label: 'อื่นๆ',                      badgeClass: 'badge-other', pinClass: 'pin-other', circleColor: '#8b5cf6', icon: '⚠️' }
     };
 
     let hazards = [];
@@ -1160,7 +1173,7 @@
 
       hazards.forEach(function (h) {
         if (isHiddenFromMap(h)) return;
-        const meta = CATEGORY_META[h.category] || CATEGORY_META.block;
+        const meta = CATEGORY_META[h.category] || CATEGORY_META.other;
         const isHighAlert = !h.isResolved && (h.category === 'smoke' || h.isIotAlert || h.reportCount >= 2 || (h.notFixedCount || 0) > 0);
         const pinClass = h.isResolved ? 'pin-done' : (isHighAlert ? 'pin-smoke' : meta.pinClass);
         const circleColor = h.isResolved ? '#22c55e' : (isHighAlert ? '#ef4444' : meta.circleColor);
@@ -1213,7 +1226,7 @@
       }
 
       listEl.innerHTML = filtered.map(function (h) {
-        const meta = CATEGORY_META[h.category] || CATEGORY_META.block;
+        const meta = CATEGORY_META[h.category] || CATEGORY_META.other;
         const isHighAlert = !h.isResolved && (h.category === 'smoke' || h.isIotAlert || h.reportCount >= 2 || (h.notFixedCount || 0) > 0);
         const cardClass = h.isResolved ? 'resolved' : (isHighAlert ? 'smoke' : h.category);
         const badgeClass = h.isResolved ? 'badge-done' : (isHighAlert ? 'badge-smoke' : meta.badgeClass);
