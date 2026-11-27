@@ -3,25 +3,21 @@
 
 <!-- =====================================================================
      [SECTION 1: HEAD & EXTERNAL LIBS]
-     ตั้งค่าหน้าเว็บ โหลดฟอนต์ และโหลดไลบรารีแผนที่ Leaflet.js
      ===================================================================== -->
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RMUTK SafeWalk — ระบบแผนที่ทางเดินปลอดภัยและแจ้งเตือนการสูบบุหรี่อัตโนมัติ</title>
 
-  <!-- Google Fonts: Prompt -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
 
-  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <style>
     /* ===================================================================
        [SECTION 2: CSS THEME & LAYOUT]
-       กำหนดตัวแปรสี โครงสร้างหน้าจอหลัก แถบรายการ และปุ่มเลื่อน
        =================================================================== */
     :root {
       --rmutk-green-dark: #14532d;
@@ -154,12 +150,25 @@
       background: #e2e8f0;
     }
 
+    .btn-not-fixed {
+      background: #fffbeb;
+      color: #b45309;
+      border: 1px solid #fcd34d;
+      padding: 5px 9px;
+      font-size: 0.75rem;
+      border-radius: 8px;
+    }
+
+    .btn-not-fixed:hover {
+      background: #fef3c7;
+    }
+
     .btn-resolve {
       background: #ecfdf5;
       color: #047857;
       border: 1px solid #a7f3d0;
-      padding: 6px 10px;
-      font-size: 0.78rem;
+      padding: 5px 9px;
+      font-size: 0.75rem;
       border-radius: 8px;
     }
 
@@ -376,46 +385,65 @@
     .sidebar-header {
       padding: 16px;
       border-bottom: 1px solid var(--border-soft);
-      background: #ffffff;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     }
 
     .sidebar-top-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
 
     .sidebar-heading {
       font-size: 0.98rem;
       font-weight: 700;
-      color: var(--text-main);
+      color: var(--rmutk-green-dark);
     }
 
     .stats-row {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
     }
 
     .stat-box {
-      background: #f8fafc;
+      background: #ffffff;
       border: 1px solid var(--border-soft);
-      border-radius: 10px;
-      padding: 8px;
-      text-align: center;
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+    }
+
+    .stat-box-active {
+      border-bottom: 3px solid var(--danger);
+      background: linear-gradient(135deg, #ffffff 60%, #fef2f2 100%);
+    }
+
+    .stat-box-resolved {
+      border-bottom: 3px solid var(--rmutk-green);
+      background: linear-gradient(135deg, #ffffff 60%, #f0fdf4 100%);
     }
 
     .stat-num {
-      font-size: 1.05rem;
+      font-size: 1.35rem;
       font-weight: 700;
       line-height: 1.1;
     }
 
     .stat-label {
-      font-size: 0.7rem;
+      font-size: 0.76rem;
+      font-weight: 600;
       color: var(--text-muted);
-      margin-top: 2px;
+      margin-top: 3px;
+    }
+
+    .stat-icon {
+      font-size: 1.25rem;
+      opacity: 0.9;
     }
 
     .sidebar-body {
@@ -460,7 +488,7 @@
     .hazard-card.resolved {
       border-left-color: #16a34a;
       background: #f8fafc;
-      opacity: 0.88;
+      opacity: 0.9;
     }
 
     .card-top {
@@ -523,6 +551,14 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .card-action-btns {
+      display: flex;
+      gap: 6px;
+      align-items: center;
     }
 
     .empty-state {
@@ -563,7 +599,6 @@
 
     /* ===================================================================
        [SECTION 3: CSS MAP PINS & GPS BLUE DOT]
-       สไตล์หมุดจุดเสี่ยง จุดสีฟ้ากะพริบตำแหน่งเรา และปุ่มเล็ง GPS
        =================================================================== */
     .pin-marker {
       display: flex;
@@ -666,7 +701,6 @@
 
 <!-- =====================================================================
      [SECTION 4: HTML BODY STRUCTURE]
-     โครงสร้างหน้าเว็บหลัก แผนที่ ปุ่ม GPS คำอธิบาย และแถบรายการ
      ===================================================================== -->
 <body>
   <header class="navbar">
@@ -720,7 +754,7 @@
         </div>
         <div class="legend-item">
           <span class="dot dot-done"></span>
-          <span>แก้ไขเสร็จสิ้นแล้ว (ซ่อนใน 5 นาที)</span>
+          <span>แก้ไขแล้ว / ไม่มีคนสูบแล้ว (หายใน 10 นาที)</span>
         </div>
       </div>
 
@@ -770,17 +804,19 @@
           <div class="sidebar-heading">รายการแจ้งเตือนและจุดเสี่ยง</div>
         </div>
         <div class="stats-row">
-          <div class="stat-box">
-            <div id="statActive" class="stat-num" style="color: var(--danger);">0</div>
-            <div class="stat-label">กำลังดำเนินการ</div>
+          <div class="stat-box stat-box-active">
+            <div>
+              <div id="statActive" class="stat-num" style="color: var(--danger);">0</div>
+              <div class="stat-label">กำลังดำเนินการ</div>
+            </div>
+            <span class="stat-icon">⚠️</span>
           </div>
-          <div class="stat-box">
-            <div id="statSmoke" class="stat-num" style="color: #b91c1c;">0</div>
-            <div class="stat-label">เคสควันบุหรี่</div>
-          </div>
-          <div class="stat-box">
-            <div id="statResolved" class="stat-num" style="color: var(--rmutk-green);">0</div>
-            <div class="stat-label">แก้ไขแล้ว</div>
+          <div class="stat-box stat-box-resolved">
+            <div>
+              <div id="statResolved" class="stat-num" style="color: var(--rmutk-green);">0</div>
+              <div class="stat-label">แก้ไขแล้ว</div>
+            </div>
+            <span class="stat-icon">✅</span>
           </div>
         </div>
       </div>
@@ -794,17 +830,17 @@
     <span id="slideLabel">เลื่อน</span>
   </button>
 
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./supabase-config.js"></script>
 
   <script>
     /* ===================================================================
        [SECTION 5: STATE & INITIAL DEMO DATA]
-       กำหนดค่าคงที่ ตัวแปรสถานะ และข้อมูลจำลองเริ่มต้น
        =================================================================== */
     const RMUTK_CENTER = [13.7136, 100.5385];
     const MERGE_RADIUS_METERS = 25;
-    const RESOLVE_HIDE_MS = 5 * 60 * 1000;
+    const RESOLVE_HIDE_MS = 10 * 60 * 1000;
 
     const CATEGORY_META = {
       smoke: {
@@ -836,43 +872,47 @@
       { lat: 13.7141, lng: 100.5391, note: 'เซ็นเซอร์ตรวจจับควันบุหรี่จุดทางเดินริมรั้วมหาวิทยาลัย' }
     ];
 
-    let hazards = [
-      {
-        id: 'HZ-101',
-        category: 'dark',
-        lat: 13.7137,
-        lng: 100.5381,
-        description: 'ไฟส่องสว่างทางเดินดับ 2 ดวง ช่วงเย็นเดินค่อนข้างมืด',
-        imageUrl: '',
-        reportCount: 1,
-        isIotAlert: false,
-        isResolved: false,
-        resolvedAt: null,
-        createdAt: Date.now() - 12 * 60 * 1000
-      },
-      {
-        id: 'HZ-102',
-        category: 'block',
-        lat: 13.7134,
-        lng: 100.5387,
-        description: 'มีการตั้งโต๊ะขายของและเต็นท์ชั่วคราวบริเวณทางเดินเท้า',
-        imageUrl: '',
-        reportCount: 2,
-        isIotAlert: false,
-        isResolved: false,
-        resolvedAt: null,
-        createdAt: Date.now() - 25 * 60 * 1000
-      }
-    ];
-
+    let hazards = [];
     let pendingCoords = null;
     let pendingImageDataUrl = '';
     let isSidebarOpen = true;
     let iotSpotIndex = 0;
 
+    function mapRowToHazard(row) {
+      return {
+        id: row.id,
+        category: row.category,
+        lat: Number(row.lat),
+        lng: Number(row.lng),
+        description: row.description || '',
+        imageUrl: row.image_url || '',
+        reportCount: Number(row.report_count || 1),
+        notFixedCount: Number(row.not_fixed_count || 0),
+        isIotAlert: Boolean(row.is_iot_alert),
+        isResolved: Boolean(row.is_resolved),
+        resolvedAt: row.resolved_at ? new Date(row.resolved_at).getTime() : null,
+        createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now()
+      };
+    }
+
+    async function loadHazardsFromSupabase() {
+      if (typeof sbClient === 'undefined' || !sbClient) return;
+      const { data, error } = await sbClient
+        .from('hazards')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('โหลดข้อมูลจาก Supabase ไม่สำเร็จ:', error.message);
+        return;
+      }
+
+      hazards = (data || []).map(mapRowToHazard);
+      renderAll();
+    }
+
     /* ===================================================================
        [SECTION 6: MAP INIT & GPS LOCATION]
-       สร้างแผนที่ Leaflet และจัดการจุดสีฟ้าตำแหน่งผู้ใช้ (GPS Blue Dot)
        =================================================================== */
     const map = L.map('map', {
       center: RMUTK_CENTER,
@@ -935,7 +975,6 @@
 
     /* ===================================================================
        [SECTION 7: SPATIAL & LIFECYCLE LOGIC]
-       คำนวณระยะทาง Haversine รวมหมุด 25 เมตร และซ่อนหมุดที่แก้ไขเสร็จใน 5 นาที
        =================================================================== */
     function getDistanceMeters(lat1, lng1, lat2, lng2) {
       const R = 6371000;
@@ -966,7 +1005,7 @@
       return diffHr + ' ชั่วโมงที่แล้ว';
     }
 
-    function addOrMergeHazard(payload) {
+    async function addOrMergeHazard(payload) {
       const category = payload.category;
       const lat = payload.lat;
       const lng = payload.lng;
@@ -992,41 +1031,118 @@
         }
         existing.createdAt = Date.now();
         renderAll();
+
+        if (typeof sbClient !== 'undefined' && sbClient) {
+          const { error } = await sbClient
+            .from('hazards')
+            .update({
+              report_count: existing.reportCount,
+              is_iot_alert: existing.isIotAlert,
+              description: existing.description,
+              image_url: existing.imageUrl,
+              created_at: new Date(existing.createdAt).toISOString()
+            })
+            .eq('id', existing.id);
+
+          if (error) console.error('อัปเดตรวมหมุดบน Supabase ไม่สำเร็จ:', error.message);
+        }
         return existing;
       }
 
+      const nowMs = Date.now();
       const newHazard = {
-        id: 'HZ-' + Math.floor(100 + Math.random() * 900) + '-' + String(Date.now()).slice(-3),
+        id: 'HZ-' + Math.floor(100 + Math.random() * 900) + '-' + String(nowMs).slice(-3),
         category: category,
         lat: lat,
         lng: lng,
         description: description || CATEGORY_META[category].label,
         imageUrl: imageUrl,
         reportCount: 1,
+        notFixedCount: 0,
         isIotAlert: isIotAlert,
         isResolved: false,
         resolvedAt: null,
-        createdAt: Date.now()
+        createdAt: nowMs
       };
 
       hazards.unshift(newHazard);
       renderAll();
+
+      if (typeof sbClient !== 'undefined' && sbClient) {
+        const { error } = await sbClient
+          .from('hazards')
+          .insert([{
+            id: newHazard.id,
+            category: newHazard.category,
+            lat: newHazard.lat,
+            lng: newHazard.lng,
+            description: newHazard.description,
+            image_url: newHazard.imageUrl,
+            report_count: newHazard.reportCount,
+            not_fixed_count: newHazard.notFixedCount,
+            is_iot_alert: newHazard.isIotAlert,
+            is_resolved: newHazard.isResolved,
+            resolved_at: null,
+            created_at: new Date(newHazard.createdAt).toISOString()
+          }]);
+
+        if (error) console.error('บันทึกจุดเสี่ยงลง Supabase ไม่สำเร็จ:', error.message);
+      }
+
       return newHazard;
     }
 
-    function markResolved(id) {
+    async function markNotResolved(id) {
       const target = hazards.find(function (h) {
         return h.id === id;
       });
       if (!target) return;
-      target.isResolved = true;
-      target.resolvedAt = Date.now();
+      target.isResolved = false;
+      target.resolvedAt = null;
+      target.notFixedCount = (target.notFixedCount || 0) + 1;
+      target.createdAt = Date.now();
       renderAll();
+
+      if (typeof sbClient !== 'undefined' && sbClient) {
+        const { error } = await sbClient
+          .from('hazards')
+          .update({
+            is_resolved: false,
+            resolved_at: null,
+            not_fixed_count: target.notFixedCount,
+            created_at: new Date(target.createdAt).toISOString()
+          })
+          .eq('id', id);
+
+        if (error) console.error('อัปเดตสถานะยังไม่แก้ไขบน Supabase ไม่สำเร็จ:', error.message);
+      }
+    }
+
+    async function markResolved(id) {
+      const target = hazards.find(function (h) {
+        return h.id === id;
+      });
+      if (!target) return;
+      const resolvedIso = new Date().toISOString();
+      target.isResolved = true;
+      target.resolvedAt = new Date(resolvedIso).getTime();
+      renderAll();
+
+      if (typeof sbClient !== 'undefined' && sbClient) {
+        const { error } = await sbClient
+          .from('hazards')
+          .update({
+            is_resolved: true,
+            resolved_at: resolvedIso
+          })
+          .eq('id', id);
+
+        if (error) console.error('อัปเดตสถานะแก้ไขแล้วบน Supabase ไม่สำเร็จ:', error.message);
+      }
     }
 
     /* ===================================================================
        [SECTION 8: UI RENDERING & REPORTING]
-       วาดหมุดและวงรัศมีบนแผนที่ แสดงรายการด้านขวา และจัดการฟอร์มแจ้งเหตุ
        =================================================================== */
     function renderMarkers() {
       markerLayerGroup.clearLayers();
@@ -1035,7 +1151,7 @@
         if (isHiddenFromMap(h)) return;
 
         const meta = CATEGORY_META[h.category];
-        const isHighAlert = !h.isResolved && (h.category === 'smoke' || h.isIotAlert || h.reportCount >= 2);
+        const isHighAlert = !h.isResolved && (h.category === 'smoke' || h.isIotAlert || h.reportCount >= 2 || (h.notFixedCount || 0) > 0);
         const pinStyleClass = h.isResolved ? 'pin-done' : (isHighAlert ? 'pin-smoke' : meta.pinClass);
         const circleColor = h.isResolved ? '#16a34a' : (isHighAlert ? '#dc2626' : meta.circleColor);
 
@@ -1056,9 +1172,15 @@
           popupAnchor: [0, -32]
         });
 
+        const remainSec = h.resolvedAt
+          ? Math.max(0, Math.ceil((RESOLVE_HIDE_MS - (Date.now() - h.resolvedAt)) / 1000))
+          : 0;
+
         const statusText = h.isResolved
-          ? 'แก้ไขเสร็จสิ้นแล้ว (จะซ่อนจากแผนที่ใน 5 นาที)'
-          : (isHighAlert ? ('แจ้งเตือนสูง (จำนวนแจ้ง: ' + h.reportCount + ' ครั้ง)') : ('กำลังดำเนินการ (จำนวนแจ้ง: ' + h.reportCount + ' ครั้ง)'));
+          ? (h.category === 'smoke'
+              ? ('ไม่มีคนดูดบุหรี่แล้ว / แก้ไขแล้ว • หมุดจะหายใน ~' + Math.ceil(remainSec / 60) + ' นาที')
+              : ('แก้ไขแล้ว • หมุดจะหายใน ~' + Math.ceil(remainSec / 60) + ' นาที'))
+          : ('ยังไม่แก้ไข (ค้างบนแผนที่ • แจ้ง ' + h.reportCount + ' ครั้ง)');
 
         const imgHtml = h.imageUrl
           ? ('<div style="margin-top:6px;"><img src="' + h.imageUrl + '" alt="รูปประกอบ" style="width:100%;max-height:120px;object-fit:cover;border-radius:6px;" /></div>')
@@ -1085,12 +1207,8 @@
       const resolvedItems = hazards.filter(function (h) {
         return h.isResolved;
       });
-      const smokeCount = activeItems.filter(function (h) {
-        return h.category === 'smoke' || h.isIotAlert;
-      }).length;
 
       document.getElementById('statActive').textContent = activeItems.length;
-      document.getElementById('statSmoke').textContent = smokeCount;
       document.getElementById('statResolved').textContent = resolvedItems.length;
 
       let html = '<div class="section-label">จุดเสี่ยงและแจ้งเตือนที่กำลังดำเนินการ (' + activeItems.length + ')</div>';
@@ -1100,12 +1218,17 @@
       } else {
         activeItems.forEach(function (h) {
           const meta = CATEGORY_META[h.category];
-          const isHighAlert = h.category === 'smoke' || h.isIotAlert || h.reportCount >= 2;
+          const isHighAlert = h.category === 'smoke' || h.isIotAlert || h.reportCount >= 2 || (h.notFixedCount || 0) > 0;
           const cardClass = isHighAlert ? 'smoke' : h.category;
           const badgeClass = isHighAlert ? 'badge-smoke' : meta.badgeClass;
           const badgeText = h.isIotAlert
             ? ('IoT ตรวจพบควัน (' + h.reportCount + ')')
             : (h.reportCount >= 2 ? ('แจ้งซ้ำ ' + h.reportCount + ' จุด') : meta.label);
+
+          const doneBtnLabel = h.category === 'smoke' ? '✓ ไม่มีคนสูบแล้ว / แก้ไขแล้ว' : '✓ แก้ไขแล้ว';
+          const notFixedInfo = (h.notFixedCount || 0) > 0
+            ? ('ยังไม่แก้ไข (' + h.notFixedCount + ') • ค้างบนแผนที่')
+            : 'ยังไม่แก้ไข • ค้างบนแผนที่';
 
           const imgBlock = h.imageUrl
             ? ('<img src="' + h.imageUrl + '" class="card-img" alt="รูปภาพประกอบเหตุการณ์" />')
@@ -1124,17 +1247,20 @@
                 '<span>🕒 ' + formatTimeAgo(h.createdAt) + '</span>' +
               '</div>' +
               '<div class="card-actions" onclick="event.stopPropagation()">' +
-                '<span style="font-size:0.72rem;color:#64748b;">รวมรัศมี ≤ 25 ม.</span>' +
-                '<button class="btn btn-resolve" type="button" onclick="markResolved(\'' + h.id + '\')">✓ แก้ไขเสร็จสิ้น</button>' +
+                '<span style="font-size:0.72rem;color:#b45309;font-weight:600;">' + notFixedInfo + '</span>' +
+                '<div class="card-action-btns">' +
+                  '<button class="btn btn-not-fixed" type="button" onclick="markNotResolved(\'' + h.id + '\')">ยังไม่แก้ไข</button>' +
+                  '<button class="btn btn-resolve" type="button" onclick="markResolved(\'' + h.id + '\')">' + doneBtnLabel + '</button>' +
+                '</div>' +
               '</div>' +
             '</article>';
         });
       }
 
-      html += '<div class="section-label">รายการที่แก้ไขเสร็จสิ้นแล้ว (' + resolvedItems.length + ')</div>';
+      html += '<div class="section-label">รายการที่แก้ไขแล้ว / ไม่มีคนสูบแล้ว (' + resolvedItems.length + ')</div>';
 
       if (resolvedItems.length === 0) {
-        html += '<div class="empty-state">ยังไม่มีรายการที่ทำเครื่องหมายว่าแก้ไขเสร็จสิ้น</div>';
+        html += '<div class="empty-state">ยังไม่มีรายการที่ทำเครื่องหมายว่าแก้ไขแล้ว</div>';
       } else {
         resolvedItems.forEach(function (h) {
           const meta = CATEGORY_META[h.category];
@@ -1142,14 +1268,14 @@
             ? Math.max(0, Math.ceil((RESOLVE_HIDE_MS - (Date.now() - h.resolvedAt)) / 1000))
             : 0;
           const mapNote = remainSec > 0
-            ? ('อยู่บนแผนที่อีก ~' + Math.ceil(remainSec / 60) + ' นาที')
-            : 'ซ่อนออกจากแผนที่แล้ว';
+            ? ('หมุดอยู่บนแผนที่อีก ~' + Math.ceil(remainSec / 60) + ' นาที (10 นาที)')
+            : 'หมุดหายออกจากแผนที่แล้ว';
 
           html +=
             '<article class="hazard-card resolved" onclick="focusHazard(\'' + h.id + '\')">' +
               '<div class="card-top">' +
                 '<div class="card-title">' + meta.icon + ' ' + meta.label + '</div>' +
-                '<span class="badge badge-done">แก้ไขเสร็จสิ้นแล้ว</span>' +
+                '<span class="badge badge-done">แก้ไขแล้ว</span>' +
               '</div>' +
               '<div class="card-desc">' + h.description + '</div>' +
               '<div class="card-meta">' +
@@ -1176,6 +1302,7 @@
       map.setView([target.lat, target.lng], 18, { animate: true });
     };
 
+    window.markNotResolved = markNotResolved;
     window.markResolved = markResolved;
 
     const reportModal = document.getElementById('reportModal');
@@ -1222,14 +1349,14 @@
       reader.readAsDataURL(file);
     });
 
-    document.getElementById('reportForm').addEventListener('submit', function (e) {
+    document.getElementById('reportForm').addEventListener('submit', async function (e) {
       e.preventDefault();
       if (!pendingCoords) return;
 
       const category = document.getElementById('hazardCategory').value;
       const description = document.getElementById('hazardDesc').value.trim();
 
-      const created = addOrMergeHazard({
+      const created = await addOrMergeHazard({
         category: category,
         lat: pendingCoords.lat,
         lng: pendingCoords.lng,
@@ -1239,14 +1366,16 @@
       });
 
       closeReportModal();
-      map.setView([created.lat, created.lng], 18, { animate: true });
+      if (created) {
+        map.setView([created.lat, created.lng], 18, { animate: true });
+      }
     });
 
-    document.getElementById('simIotBtn').addEventListener('click', function () {
+    document.getElementById('simIotBtn').addEventListener('click', async function () {
       const spot = IOT_SPOTS[iotSpotIndex % IOT_SPOTS.length];
       iotSpotIndex += 1;
 
-      const alertItem = addOrMergeHazard({
+      const alertItem = await addOrMergeHazard({
         category: 'smoke',
         lat: spot.lat,
         lng: spot.lng,
@@ -1255,7 +1384,9 @@
         isIotAlert: true
       });
 
-      map.setView([alertItem.lat, alertItem.lng], 18, { animate: true });
+      if (alertItem) {
+        map.setView([alertItem.lat, alertItem.lng], 18, { animate: true });
+      }
     });
 
     document.getElementById('locateMeBtn').addEventListener('click', locateUserOnMap);
@@ -1284,10 +1415,11 @@
     });
 
     setInterval(function () {
-      renderAll();
+      loadHazardsFromSupabase();
     }, 15000);
 
     renderAll();
+    loadHazardsFromSupabase();
   </script>
 </body>
 </html>
