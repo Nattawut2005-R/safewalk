@@ -1,29 +1,58 @@
 <!DOCTYPE html>
 <html lang="th">
+
+<!-- =====================================================================
+     [SECTION 1: HEAD & EXTERNAL LIBS]
+     ตั้งค่าหน้าเว็บ โหลดฟอนต์ และโหลดไลบรารีแผนที่ Leaflet.js
+     ===================================================================== -->
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RMUTK SafeWalk — ระบบแผนที่ทางเดินปลอดภัยและแจ้งเตือนการสูบบุหรี่อัตโนมัติ</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Google Fonts: Prompt -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
   <style>
+    /* ===================================================================
+       [SECTION 2: CSS THEME & LAYOUT]
+       กำหนดตัวแปรสี โครงสร้างหน้าจอหลัก แถบรายการ และปุ่มเลื่อน
+       =================================================================== */
     :root {
-      --rmutk-dark: #14532d;
-      --rmutk-primary: #15803d;
-      --rmutk-accent: #22c55e;
-      --rmutk-soft: #f0fdf4;
-      --rmutk-border: #bbf7d0;
-      --bg-page: #f8fafc;
+      --rmutk-green-dark: #14532d;
+      --rmutk-green: #15803d;
+      --rmutk-green-soft: #dcfce7;
+      --bg-app: #f8fafc;
+      --bg-panel: #ffffff;
       --text-main: #1e293b;
       --text-muted: #64748b;
+      --border-soft: #e2e8f0;
+      --danger: #dc2626;
+      --danger-soft: #fee2e2;
+      --warning: #d97706;
+      --warning-soft: #fef3c7;
+      --info: #2563eb;
+      --info-soft: #dbeafe;
+      --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+      --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.12);
+      --radius-md: 12px;
+      --radius-lg: 16px;
     }
 
-    * { box-sizing: border-box; }
-    body {
+    * {
+      box-sizing: border-box;
       margin: 0;
+      padding: 0;
+    }
+
+    body {
       font-family: 'Prompt', sans-serif;
-      background: var(--bg-page);
+      background-color: var(--bg-app);
       color: var(--text-main);
       height: 100vh;
       display: flex;
@@ -31,20 +60,18 @@
       overflow: hidden;
     }
 
-    /* Header พื้นหลังสีขาว สะอาดตา ตัดขอบล่างสีเขียวมทร. */
+    /* ส่วนหัวเว็บไซต์ (Navbar) */
     .navbar {
       height: 64px;
-      padding: 0 20px;
-      background: #ffffff;
-      border-bottom: 3.5px solid #15803d;
-      color: #14532d;
+      background: linear-gradient(90deg, var(--rmutk-green-dark) 0%, var(--rmutk-green) 100%);
+      color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      flex-shrink: 0;
-      box-shadow: 0 3px 12px rgba(20, 83, 45, 0.08);
+      padding: 0 18px;
+      box-shadow: var(--shadow-sm);
       z-index: 1000;
+      flex-shrink: 0;
     }
 
     .brand {
@@ -53,226 +80,317 @@
       gap: 12px;
     }
 
-    /* โลโก้ใหม่: ไอคอนแผนที่ + ปักหมุด + เครื่องหมายตกใจ */
-    .brand-logo-svg {
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      background: #f0fdf4;
-      border: 1.5px solid #15803d;
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #ffffff;
+      padding: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
       flex-shrink: 0;
-      box-shadow: 0 2px 6px rgba(21, 128, 61, 0.14);
     }
 
     .brand-title {
-      font-size: 16px;
+      font-size: 1.05rem;
       font-weight: 700;
-      color: #14532d;
-      line-height: 1.15;
+      line-height: 1.2;
+      letter-spacing: 0.2px;
     }
 
-    .brand-sub {
-      font-size: 11px;
-      color: #475569;
+    .brand-subtitle {
+      font-size: 0.74rem;
+      color: #dcfce7;
       font-weight: 400;
     }
 
     .nav-actions {
       display: flex;
       align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
+      gap: 10px;
     }
 
+    /* ปุ่มมาตรฐาน */
     .btn {
-      padding: 7px 13px;
-      border-radius: 9px;
-      border: none;
       font-family: 'Prompt', sans-serif;
-      font-size: 12px;
+      border: none;
+      border-radius: 10px;
+      padding: 8px 14px;
+      font-size: 0.84rem;
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      transition: all 0.15s ease;
+      transition: all 0.2s ease;
     }
 
-    .btn-sim-smoke {
-      background: #fef2f2;
-      color: #b91c1c;
-      border: 1px solid #fecaca;
+    .btn-sim {
+      background: #fef08a;
+      color: #713f12;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
     }
-    .btn-sim-smoke:hover { background: #fee2e2; }
 
-    .btn-report {
-      background: #15803d;
+    .btn-sim:hover {
+      background: #fde047;
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--rmutk-green);
       color: #ffffff;
     }
-    .btn-report:hover { background: #14532d; }
 
-    .btn-outline {
-      background: #f8fafc;
-      color: #14532d;
-      border: 1px solid #cbd5e1;
+    .btn-primary:hover {
+      background: var(--rmutk-green-dark);
     }
-    .btn-outline:hover { background: #f0fdf4; border-color: #15803d; }
 
-    /* Layout หลัก: แผนที่ซ้าย + แผงข้อมูลขวาที่พับเก็บได้ */
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    .btn-resolve {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      border-radius: 8px;
+    }
+
+    .btn-resolve:hover {
+      background: #d1fae5;
+    }
+
+    /* พื้นที่ทำงานหลัก (แผนที่ + แถบรายการด้านขวา) */
     .workspace {
-      position: relative;
-      display: flex;
       flex: 1;
+      display: flex;
+      position: relative;
       overflow: hidden;
     }
 
     .map-wrapper {
-      position: relative;
       flex: 1;
+      position: relative;
       height: 100%;
-      transition: all 0.25s ease;
     }
 
-    #map { width: 100%; height: 100%; }
+    #map {
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
 
-    /* โทนซอฟต์สะอาดตา */
+    /* ปรับโทนแผนที่ให้ซอฟต์สบายตา */
     .soft-map .leaflet-tile-pane {
-      filter: saturate(0.45) brightness(1.06) contrast(0.92);
+      filter: saturate(0.72) brightness(1.03) contrast(0.95);
     }
 
-    /* Legend มุมล่างซ้าย */
+    /* กล่องคำอธิบายสัญลักษณ์ (Legend) มุมล่างซ้าย */
     .map-legend {
       position: absolute;
-      bottom: 20px;
-      left: 14px;
+      bottom: 18px;
+      left: 16px;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      box-shadow: var(--shadow-md);
       z-index: 800;
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 9px 12px;
-      font-size: 11px;
-      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
+      font-size: 0.78rem;
+      max-width: 268px;
     }
 
-    .legend-item { display: flex; align-items: center; gap: 7px; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .legend-title {
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 8px;
+      font-size: 0.82rem;
+    }
 
-    /* แผงด้านขวา (รองรับการพับเก็บไปทางขวา) */
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      color: var(--text-main);
+      line-height: 1.3;
+    }
+
+    .legend-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+    }
+
+    .dot-blue-demo {
+      background: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+    }
+
+    .dot-smoke { background: #dc2626; }
+    .dot-dark  { background: #d97706; }
+    .dot-block { background: #2563eb; }
+    .dot-done  { background: #16a34a; }
+
+    /* หน้าต่างป๊อปอัปแจ้งจุดเสี่ยง */
+    .report-modal {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      width: 350px;
+      max-width: calc(100% - 32px);
+      background: var(--bg-panel);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      padding: 16px;
+      z-index: 900;
+      display: none;
+    }
+
+    .report-modal.active {
+      display: block;
+      animation: fadeIn 0.18s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .modal-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--rmutk-green-dark);
+    }
+
+    .close-x {
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: var(--text-main);
+    }
+
+    .form-control {
+      width: 100%;
+      font-family: 'Prompt', sans-serif;
+      font-size: 0.84rem;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 9px;
+      background: #ffffff;
+      color: var(--text-main);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--rmutk-green);
+      box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.15);
+    }
+
+    .coord-pill {
+      background: #f1f5f9;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .image-preview {
+      width: 100%;
+      max-height: 140px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-top: 8px;
+      display: none;
+      border: 1px solid var(--border-soft);
+    }
+
+    .modal-footer {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    /* แถบรายการด้านขวา (Sidebar) */
     .sidebar {
       width: 400px;
       max-width: 92vw;
-      background: #ffffff;
-      border-left: 1px solid #e2e8f0;
+      background: var(--bg-panel);
+      border-left: 1px solid var(--border-soft);
       display: flex;
       flex-direction: column;
       height: 100%;
-      overflow-y: auto;
-      padding: 16px;
-      gap: 14px;
+      transition: width 0.25s ease, opacity 0.2s ease;
+      z-index: 850;
+      box-shadow: -4px 0 16px rgba(15, 23, 42, 0.04);
       flex-shrink: 0;
-      transition: width 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
     }
 
     .sidebar.collapsed {
       width: 0;
-      padding-left: 0;
-      padding-right: 0;
       border-left: none;
-      opacity: 0;
       overflow: hidden;
     }
 
-    .sidebar-top-bar {
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-soft);
+      background: #ffffff;
+    }
+
+    .sidebar-top-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid #f1f5f9;
-      padding-bottom: 8px;
+      margin-bottom: 10px;
     }
 
-    @keyframes floatArrowRight {
-      0%, 100% { transform: translateX(0px); }
-      50% { transform: translateX(3px); }
-    }
-
-    @keyframes floatArrowLeft {
-      0%, 100% { transform: translateX(0px); }
-      50% { transform: translateX(-3px); }
-    }
-
-    /* ปุ่มเลื่อนติดขอบล่างสุด ตรงรอยต่อแผนที่และแผงด้านขวา */
-    .edge-slide-btn {
-      position: fixed;
-      bottom: 18px;
-      right: 392px;
-      z-index: 1250;
-      background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
-      color: #14532d;
-      border: 1.5px solid #15803d;
-      border-radius: 999px;
-      padding: 7px 14px;
-      font-family: 'Prompt', sans-serif;
-      font-size: 12px;
+    .sidebar-heading {
+      font-size: 0.98rem;
       font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 4px 14px rgba(20, 83, 45, 0.2);
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      line-height: 1;
-      transition: right 0.25s ease, background-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
-    }
-
-    .edge-slide-btn:hover {
-      background: #dcfce7;
-      box-shadow: 0 6px 18px rgba(21, 128, 61, 0.28);
-      transform: scale(1.03);
-    }
-
-    .edge-slide-btn.is-collapsed {
-      right: 14px;
-      background: #15803d;
-      color: #ffffff;
-      border-color: #14532d;
-    }
-
-    .edge-slide-btn.is-collapsed:hover {
-      background: #14532d;
-    }
-
-    .edge-arrow {
-      display: inline-block;
-      font-size: 11px;
-      line-height: 1;
-      animation: floatArrowRight 1.35s ease-in-out infinite;
-    }
-
-    .edge-slide-btn.is-collapsed .edge-arrow {
-      animation: floatArrowLeft 1.35s ease-in-out infinite;
-    }
-
-    @media (max-width: 860px) {
-      .sidebar {
-        position: absolute;
-        right: 0;
-        top: 0;
-        bottom: 0;
-        z-index: 950;
-        box-shadow: -6px 0 20px rgba(15, 23, 42, 0.15);
-      }
-      .edge-slide-btn {
-        bottom: 16px;
-        right: calc(92vw - 8px);
-      }
-      .edge-slide-btn.is-collapsed {
-        right: 12px;
-      }
+      color: var(--text-main);
     }
 
     .stats-row {
@@ -281,750 +399,390 @@
       gap: 8px;
     }
 
-    .stat-card {
+    .stat-box {
       background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 11px;
-      padding: 9px 8px;
+      border: 1px solid var(--border-soft);
+      border-radius: 10px;
+      padding: 8px;
       text-align: center;
     }
 
-    .stat-num { font-size: 18px; font-weight: 700; color: var(--rmutk-dark); }
-    .stat-label { font-size: 10.5px; color: var(--text-muted); }
-
-    .section-header {
-      font-size: 13px;
+    .stat-num {
+      font-size: 1.05rem;
       font-weight: 700;
-      color: #0f172a;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
+      line-height: 1.1;
     }
 
-    .badge-count {
-      background: #dcfce7;
-      color: #166534;
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-weight: 600;
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 2px;
     }
 
-    .feed-list { display: flex; flex-direction: column; gap: 9px; }
+    .sidebar-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px 84px 16px;
+    }
 
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin: 12px 0 8px 0;
+    }
+
+    .section-label:first-child {
+      margin-top: 0;
+    }
+
+    /* การ์ดรายการเหตุการณ์ */
     .hazard-card {
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 11px 12px;
       background: #ffffff;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+      border: 1px solid var(--border-soft);
+      border-left: 5px solid var(--info);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      margin-bottom: 10px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
       cursor: pointer;
-      transition: all 0.15s ease;
     }
 
-    .hazard-card:hover { border-color: #15803d; transform: translateY(-1px); }
-    .hazard-card.multi-report { border-color: #fca5a5; background: #fffafa; }
+    .hazard-card:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .hazard-card.smoke { border-left-color: var(--danger); }
+    .hazard-card.dark  { border-left-color: var(--warning); }
+    .hazard-card.block { border-left-color: var(--info); }
+    .hazard-card.resolved {
+      border-left-color: #16a34a;
+      background: #f8fafc;
+      opacity: 0.88;
+    }
 
     .card-top {
       display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .card-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .badge-smoke { background: var(--danger-soft); color: var(--danger); }
+    .badge-dark  { background: var(--warning-soft); color: #b45309; }
+    .badge-block { background: var(--info-soft); color: var(--info); }
+    .badge-done  { background: #dcfce7; color: #15803d; }
+
+    .card-desc {
+      font-size: 0.8rem;
+      color: #475569;
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+
+    .card-img {
+      width: 100%;
+      max-height: 150px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid var(--border-soft);
+    }
+
+    .card-meta {
+      display: flex;
       align-items: center;
       justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--text-muted);
       gap: 6px;
-      margin-bottom: 5px;
+      flex-wrap: wrap;
     }
 
-    .tag { font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
-    .tag-smoke { background: #fee2e2; color: #b91c1c; }
-    .tag-light { background: #fef3c7; color: #b45309; }
-    .tag-road { background: #e0e7ff; color: #3730a3; }
-
-    .tag-auto {
-      font-size: 10px;
-      background: #14532d;
-      color: #ffffff;
-      padding: 2px 7px;
-      border-radius: 6px;
-    }
-
-    .tag-multi {
-      font-size: 10px;
-      background: #dc2626;
-      color: #ffffff;
-      padding: 2px 7px;
-      border-radius: 6px;
-      font-weight: 600;
-    }
-
-    .card-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-    .card-meta { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
-
-    .status-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-
-    .status-btn {
-      flex: 1;
-      padding: 6px 8px;
-      border-radius: 8px;
-      border: 1px solid #cbd5e1;
-      background: #f8fafc;
-      font-family: 'Prompt', sans-serif;
-      font-size: 11.5px;
-      font-weight: 600;
-      cursor: pointer;
-      color: #334155;
-    }
-
-    .status-btn.active-danger { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
-    .status-btn.active-safe { background: #dcfce7; border-color: #22c55e; color: #166534; }
-
-    /* หน้าต่างรายละเอียดเมื่อคลิกหมุด */
-    .detail-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      animation: fadeIn 0.2s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .back-btn {
-      background: #f1f5f9;
-      color: #334155;
-      border: 1px solid #cbd5e1;
-      padding: 5px 10px;
-      border-radius: 8px;
-      font-family: 'Prompt', sans-serif;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .back-btn:hover { background: #e2e8f0; }
-
-    .detail-box {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .detail-row {
-      font-size: 12px;
-      color: #334155;
+    .card-actions {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed #e2e8f0;
       display: flex;
       justify-content: space-between;
-      border-bottom: 1px dashed #e2e8f0;
-      padding-bottom: 6px;
+      align-items: center;
     }
 
-    /* Modal แจ้งเหตุ */
-    .modal-backdrop {
+    .empty-state {
+      text-align: center;
+      padding: 28px 14px;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      background: #f8fafc;
+      border-radius: var(--radius-md);
+      border: 1px dashed #cbd5e1;
+    }
+
+    /* ปุ่ม "เลื่อน" ชิดขอบล่างสุด */
+    .edge-slide-btn {
       position: fixed;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.45);
-      display: none;
+      bottom: 16px;
+      right: 16px;
+      z-index: 1100;
+      background: var(--rmutk-green-dark);
+      color: #ffffff;
+      border: 2px solid #ffffff;
+      border-radius: 999px;
+      padding: 9px 16px;
+      font-family: 'Prompt', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(20, 83, 45, 0.35);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .edge-slide-btn:hover {
+      background: var(--rmutk-green);
+      transform: translateY(-2px);
+    }
+
+    /* ===================================================================
+       [SECTION 3: CSS MAP PINS & GPS BLUE DOT]
+       สไตล์หมุดจุดเสี่ยง จุดสีฟ้ากะพริบตำแหน่งเรา และปุ่มเล็ง GPS
+       =================================================================== */
+    .pin-marker {
+      display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 2000;
-      padding: 16px;
-    }
-    .modal-backdrop.open { display: flex; }
-
-    .modal-card {
-      background: #ffffff;
-      border-radius: 16px;
-      width: 100%;
-      max-width: 400px;
-      padding: 18px;
-      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.25);
-    }
-
-    .modal-title { font-size: 15px; font-weight: 700; color: var(--rmutk-dark); margin-bottom: 10px; }
-    .form-group { margin-bottom: 10px; }
-    .form-label { display: block; font-size: 11.5px; font-weight: 600; margin-bottom: 4px; color: #334155; }
-    select, input[type="text"] {
-      width: 100%;
-      padding: 7px 9px;
-      border-radius: 8px;
-      border: 1px solid #cbd5e1;
-      font-family: 'Prompt', sans-serif;
-      font-size: 12px;
-    }
-
-    /* Custom Marker */
-    .pin-marker {
-      width: 28px;
-      height: 28px;
+      width: 34px;
+      height: 34px;
       border-radius: 50% 50% 50% 0;
       transform: rotate(-45deg);
       border: 2.5px solid #ffffff;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 10px rgba(15, 23, 42, 0.28);
+    }
+
+    .pin-marker span {
+      transform: rotate(45deg);
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .pin-smoke { background: #dc2626; }
+    .pin-dark  { background: #d97706; }
+    .pin-block { background: #2563eb; }
+    .pin-done  { background: #16a34a; }
+
+    /* จุดสีฟ้ากะพริบแสดงตำแหน่งปัจจุบันของเราแบบ Google Maps */
+    .user-blue-dot {
+      width: 16px;
+      height: 16px;
+      background: #2563eb;
+      border: 3px solid #ffffff;
+      border-radius: 50%;
+      animation: pulseBlueDot 2s infinite;
+    }
+
+    @keyframes pulseBlueDot {
+      0%   { box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.45), 0 2px 6px rgba(0, 0, 0, 0.25); }
+      70%  { box-shadow: 0 0 0 14px rgba(37, 99, 235, 0), 0 2px 6px rgba(0, 0, 0, 0.25); }
+      100% { box-shadow: 0 0 0 2px rgba(37, 99, 235, 0), 0 2px 6px rgba(0, 0, 0, 0.25); }
+    }
+
+    /* ปุ่มเล็งตำแหน่งปัจจุบัน (GPS) มุมขวาล่างเหนือปุ่มเลื่อน */
+    .locate-me-btn {
+      position: absolute;
+      bottom: 66px;
+      right: 16px;
+      z-index: 850;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #ffffff;
+      color: var(--info);
+      border: 1.5px solid #cbd5e1;
+      box-shadow: var(--shadow-md);
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: transform 0.15s ease;
+      font-size: 18px;
+      transition: all 0.2s ease;
     }
-    .pin-marker.selected {
-      transform: rotate(-45deg) scale(1.22);
-      box-shadow: 0 0 0 4px rgba(21, 128, 61, 0.35);
+
+    .locate-me-btn:hover {
+      background: #eff6ff;
+      border-color: var(--info);
+      transform: translateY(-1px);
     }
-    .pin-marker span { transform: rotate(45deg); font-size: 12px; }
+
+    @media (max-width: 860px) {
+      .brand-subtitle {
+        display: none;
+      }
+      .brand-title {
+        font-size: 0.94rem;
+      }
+      .btn-sim {
+        padding: 7px 10px;
+        font-size: 0.76rem;
+      }
+      .sidebar {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 360px;
+        max-width: 90vw;
+      }
+      .map-legend {
+        bottom: 66px;
+        left: 12px;
+        padding: 10px 12px;
+        max-width: 225px;
+      }
+    }
   </style>
 </head>
-<body>
 
+<!-- =====================================================================
+     [SECTION 4: HTML BODY STRUCTURE]
+     โครงสร้างหน้าเว็บหลัก แผนที่ ปุ่ม GPS คำอธิบาย และแถบรายการ
+     ===================================================================== -->
+<body>
+  <!-- ส่วนหัวเว็บไซต์ -->
   <header class="navbar">
     <div class="brand">
-      <!-- โลโก้รูปแผนที่ + ปักหมุด + เครื่องหมายตกใจ -->
-      <div class="brand-logo-svg" title="RMUTK SafeWalk">
-        <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 8.5L10.5 5.5L21.5 9L29 6V24.5L21.5 27.5L10.5 24L3 27V8.5Z" fill="#DCFCE7" stroke="#15803D" stroke-width="2" stroke-linejoin="round"/>
-          <path d="M10.5 5.5V24" stroke="#15803D" stroke-width="1.5" stroke-dasharray="2 2"/>
-          <path d="M21.5 9V27.5" stroke="#15803D" stroke-width="1.5" stroke-dasharray="2 2"/>
-          <path d="M16 2C12.134 2 9 5.02 9 8.75C9 13.8 16 20.5 16 20.5C16 20.5 23 13.8 23 8.75C23 5.02 19.866 2 16 2Z" fill="#DC2626" stroke="#FFFFFF" stroke-width="1.5"/>
-          <path d="M16 6.2V10.4" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="16" cy="13.2" r="1.15" fill="#FFFFFF"/>
+      <div class="brand-logo" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="32" height="32">
+          <path d="M32 4C19.85 4 10 13.85 10 26c0 16.5 22 34 22 34s22-17.5 22-34C54 13.85 44.15 4 32 4z" fill="#15803d"/>
+          <circle cx="32" cy="25" r="11" fill="#ffffff"/>
+          <path d="M32 18v8M32 30v1.5" stroke="#dc2626" stroke-width="3.2" stroke-linecap="round"/>
         </svg>
       </div>
       <div>
         <div class="brand-title">RMUTK SafeWalk</div>
-        <div class="brand-sub">ระบบแผนที่ทางเดินปลอดภัยและแจ้งเตือนการสูบบุหรี่อัตโนมัติ (มทร.กรุงเทพ)</div>
+        <div class="brand-subtitle">ระบบแผนที่ทางเดินปลอดภัยและแจ้งเตือนการสูบบุหรี่อัตโนมัติ (มทร.กรุงเทพ)</div>
       </div>
     </div>
 
     <div class="nav-actions">
-      <button class="btn btn-sim-smoke" onclick="simulateAutoSmoke()">จำลอง IoT ตรวจจับควันบุหรี่</button>
+      <button id="simIotBtn" class="btn btn-sim" type="button">
+        <span>🚬</span>
+        <span>จำลอง IoT ตรวจจับควันบุหรี่</span>
+      </button>
     </div>
   </header>
 
+  <!-- พื้นที่ทำงานหลัก -->
   <main class="workspace">
+    <!-- แผนที่และองค์ประกอบบนแผนที่ -->
     <section class="map-wrapper">
       <div id="map" class="soft-map"></div>
 
+      <!-- ปุ่มเล็งตำแหน่งปัจจุบัน (จุดสีฟ้าแบบ Google Maps) -->
+      <button id="locateMeBtn" class="locate-me-btn" type="button" title="ตำแหน่งปัจจุบันของฉัน (GPS)">
+        🎯
+      </button>
+
+      <!-- กล่องคำอธิบายสัญลักษณ์ -->
       <div class="map-legend">
-        <div class="legend-item"><span class="dot" style="background:#dc2626;"></span> แจ้งเตือนควันบุหรี่อัตโนมัติ / มีคนแจ้งหลายคน (≤ 25 ม.)</div>
-        <div class="legend-item"><span class="dot" style="background:#f59e0b;"></span> ไฟทางดับ / จุดมืด (รอแก้ไข)</div>
-        <div class="legend-item"><span class="dot" style="background:#6366f1;"></span> ปิดถนน / กิจกรรมกีดขวางทางเดิน</div>
-        <div class="legend-item"><span class="dot" style="background:#16a34a;"></span> แก้ไขเสร็จสิ้นแล้ว (ซ่อนใน 5 นาที)</div>
+        <div class="legend-title">สัญลักษณ์บนแผนที่</div>
+        <div class="legend-item">
+          <span class="dot dot-blue-demo"></span>
+          <span>ตำแหน่งปัจจุบันของเรา (กดปุ่ม 🎯 เพื่อระบุพิกัด)</span>
+        </div>
+        <div class="legend-item">
+          <span class="dot dot-smoke"></span>
+          <span>แจ้งเตือนควันบุหรี่อัตโนมัติ / มีคนแจ้งหลายคน (≤ 25 ม.)</span>
+        </div>
+        <div class="legend-item">
+          <span class="dot dot-dark"></span>
+          <span>ไฟทางดับ / จุดมืด (รอแก้ไข)</span>
+        </div>
+        <div class="legend-item">
+          <span class="dot dot-block"></span>
+          <span>ปิดถนน / กิจกรรมกีดขวางทางเดิน</span>
+        </div>
+        <div class="legend-item">
+          <span class="dot dot-done"></span>
+          <span>แก้ไขเสร็จสิ้นแล้ว (ซ่อนใน 5 นาที)</span>
+        </div>
+      </div>
+
+      <!-- หน้าต่างป๊อปอัปแจ้งจุดเสี่ยง -->
+      <div id="reportModal" class="report-modal" role="dialog" aria-label="แจ้งจุดเสี่ยงบนแผนที่">
+        <div class="modal-header">
+          <div class="modal-title">📍 แจ้งจุดเสี่ยง / ปักหมุดบนแผนที่</div>
+          <button id="closeModalBtn" class="close-x" type="button" title="ปิดหน้าต่าง">×</button>
+        </div>
+
+        <form id="reportForm">
+          <div class="form-group">
+            <label class="form-label" for="hazardCategory">หมวดหมู่เหตุการณ์</label>
+            <select id="hazardCategory" class="form-control" required>
+              <option value="smoke">สูบบุหรี่ในพื้นที่ห้ามสูบ</option>
+              <option value="dark">ไฟทางดับ / ทางเดินมืด</option>
+              <option value="block">ขายของปิดถนน / ตั้งเต็นท์จัดงาน</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="hazardImage">อัปโหลดรูปภาพประกอบ (ไม่บังคับ — ไม่ใส่รูปก็ส่งได้)</label>
+            <input id="hazardImage" class="form-control" type="file" accept="image/*" />
+            <img id="imagePreview" class="image-preview" alt="ตัวอย่างรูปภาพ" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="hazardDesc">รายละเอียดเพิ่มเติม</label>
+            <textarea id="hazardDesc" class="form-control" rows="2" placeholder="ระบุจุดสังเกต เช่น หน้าอาคารเรียน หรือทางเดินเชื่อม..."></textarea>
+          </div>
+
+          <div class="coord-pill">
+            <span>พิกัดที่คลิกเลือกบนแผนที่:</span>
+            <strong id="pickedCoords">-</strong>
+          </div>
+
+          <div class="modal-footer">
+            <button id="cancelReportBtn" class="btn btn-secondary" type="button">ยกเลิก</button>
+            <button class="btn btn-primary" type="submit">บันทึกแจ้งเหตุ</button>
+          </div>
+        </form>
       </div>
     </section>
 
-    <!-- แผงด้านขวา (พับเก็บได้) -->
-    <aside class="sidebar" id="sidebarContent"></aside>
-  </main>
-
-  <!-- Modal แจ้งจุดเสี่ยง (เปิดเมื่อคลิกปักหมุดบนแผนที่) -->
-  <div class="modal-backdrop" id="reportModal">
-    <div class="modal-card">
-      <div class="modal-title">แจ้งจุดเสี่ยง / ปักหมุดบนแผนที่</div>
-      <div class="form-group">
-        <label class="form-label">หมวดหมู่เหตุการณ์</label>
-        <select id="repType">
-          <option value="smoke">สูบบุหรี่ในพื้นที่ห้ามสูบ</option>
-          <option value="light">ไฟทางดับ / ทางเดินมืด</option>
-          <option value="road_closed">ขายของปิดถนน / ตั้งเต็นท์จัดงาน</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">อัปโหลดรูปภาพประกอบ (ไม่บังคับ — ไม่ใส่รูปก็ส่งได้)</label>
-        <input type="file" id="repPhoto" accept="image/*" onchange="previewReportPhoto(event)" style="font-size:11.5px;" />
-        <img id="repPhotoPreview" alt="ตัวอย่างรูปภาพ" style="display:none;width:100%;max-height:140px;object-fit:cover;border-radius:10px;margin-top:8px;border:1px solid #cbd5e1;" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">รายละเอียดเพิ่มเติม</label>
-        <input type="text" id="repDetail" placeholder="เช่น พบกลุ่มคนสูบบุหรี่บริเวณทางเดิน..." />
-      </div>
-      <div style="font-size:11px;color:#15803d;margin-bottom:10px;" id="clickedCoordHint">
-        พิกัดที่คลิกเลือกบนแผนที่: 13.71360, 100.53850
-      </div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;">
-        <button class="btn" style="background:#e2e8f0;color:#334155;" onclick="closeReportModal()">ยกเลิก</button>
-        <button class="btn btn-report" onclick="submitManualReport()">บันทึกแจ้งเหตุ</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ปุ่มลอยติดขอบล่างสุดสำหรับเลื่อนเปิด/เก็บแถบรายการ -->
-  <button class="edge-slide-btn" id="edgeSlideBtn" onclick="toggleSidebar()" title="เลื่อนเปิด/เก็บแถบรายการ">
-    <span id="edgeSlideLabel">เลื่อน</span>
-    <span class="edge-arrow" id="edgeSlideArrow">▶</span>
-  </button>
-
-  <script>
-    const RMUTK_CENTER = [13.7136, 100.5385];
-    const map = L.map('map').setView(RMUTK_CENTER, 17);
-
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    let hazards = [
-      {
-        id: 'hz-1',
-        type: 'smoke',
-        title: 'ตรวจพบควันบุหรี่ (ESP32 + PMS5003)',
-        locationName: 'มุมอับข้างอาคาร 48',
-        lat: 13.7127,
-        lng: 100.5378,
-        sourceType: 'sensor_auto',
-        channel: 'กล่อง IoT จุดที่ 1 (ESP32)',
-        reportCount: 2,
-        statusOption: 'still_smoking',
-        isResolved: false,
-        resolvedAt: null,
-        updatedAt: 'เมื่อสักครู่',
-        detailNote: 'ค่าฝุ่น PM2.5 สูงเกินเกณฑ์ต่อเนื่อง แจ้งเตือนอัตโนมัติเข้าสู่ระบบ'
-      },
-      {
-        id: 'hz-2',
-        type: 'light',
-        title: 'ไฟทางเดินดับ 2 ดวง ช่วงค่ำค่อนข้างมืด',
-        locationName: 'ทางเดินข้างอาคารสิรินทร',
-        lat: 13.7139,
-        lng: 100.5379,
-        sourceType: 'chatbot',
-        channel: 'LINE Chatbot',
-        reportCount: 1,
-        statusOption: 'not_fixed',
-        isResolved: false,
-        resolvedAt: null,
-        updatedAt: '12 นาทีที่แล้ว',
-        detailNote: 'ผู้ใช้งานแชร์ตำแหน่งและรูปภาพผ่านบอท ไฟทางเดินช่วงหัวมุมดับ'
-      },
-      {
-        id: 'hz-3',
-        type: 'road_closed',
-        title: 'ตั้งเต็นท์จัดกิจกรรมนักศึกษา ปิดทางเดินบางส่วน',
-        locationName: 'ลานหน้าอาคาร 80 พรรษาฯ',
-        lat: 13.7133,
-        lng: 100.5391,
-        sourceType: 'web_user',
-        channel: 'หน้าเว็บ RMUTK SafeWalk',
-        reportCount: 1,
-        statusOption: 'still_closed',
-        isResolved: false,
-        resolvedAt: null,
-        updatedAt: '25 นาทีที่แล้ว',
-        detailNote: 'มีซุ้มกิจกรรมตั้งขวางทางเดินหลัก แนะนำเดินอ้อมด้านข้าง'
-      }
-    ];
-
-    let selectedHazardId = null;
-    let isSidebarCollapsed = false;
-    const markerLayer = L.layerGroup().addTo(map);
-    let customClickedLatLng = null;
-
-    function syncEdgeButton() {
-      const btn = document.getElementById('edgeSlideBtn');
-      const label = document.getElementById('edgeSlideLabel');
-      const arrow = document.getElementById('edgeSlideArrow');
-      if (!btn || !label || !arrow) return;
-
-      label.textContent = 'เลื่อน';
-      if (isSidebarCollapsed) {
-        btn.classList.add('is-collapsed');
-        arrow.textContent = '◀';
-      } else {
-        btn.classList.remove('is-collapsed');
-        arrow.textContent = '▶';
-      }
-    }
-
-    function toggleSidebar(collapse) {
-      isSidebarCollapsed = typeof collapse === 'boolean' ? collapse : !isSidebarCollapsed;
-      const sidebar = document.getElementById('sidebarContent');
-
-      if (isSidebarCollapsed) {
-        sidebar.classList.add('collapsed');
-      } else {
-        sidebar.classList.remove('collapsed');
-      }
-
-      syncEdgeButton();
-      setTimeout(() => map.invalidateSize(), 260);
-    }
-
-    map.on('click', (e) => {
-      customClickedLatLng = e.latlng;
-      document.getElementById('clickedCoordHint').textContent =
-        `พิกัดที่คลิกเลือกบนแผนที่: ${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
-      openReportModal();
-    });
-
-    function getDistanceMeters(lat1, lon1, lat2, lon2) {
-      const R = 6371000;
-      const toRad = (deg) => (deg * Math.PI) / 180;
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-
-    function addOrMergeHazard(newItem) {
-      const existing = hazards.find(
-        (h) =>
-          !h.isResolved &&
-          h.type === newItem.type &&
-          getDistanceMeters(h.lat, h.lng, newItem.lat, newItem.lng) <= 25
-      );
-
-      if (existing) {
-        existing.reportCount += 1;
-        existing.updatedAt = 'อัปเดตล่าสุดเมื่อสักครู่';
-        if (newItem.sourceType === 'sensor_auto') {
-          existing.sourceType = 'sensor_auto';
-        }
-        selectedHazardId = existing.id;
-      } else {
-        const created = {
-          id: 'hz-' + Date.now(),
-          ...newItem,
-          reportCount: 1,
-          isResolved: false,
-          resolvedAt: null,
-          updatedAt: 'เมื่อสักครู่'
-        };
-        hazards.unshift(created);
-        selectedHazardId = created.id;
-      }
-      toggleSidebar(false);
-      renderAll();
-    }
-
-    function getCategoryMeta(type) {
-      if (type === 'smoke') return { label: 'สูบบุหรี่', tagClass: 'tag-smoke', color: '#dc2626', icon: '🚬' };
-      if (type === 'light') return { label: 'ไฟทางดับ', tagClass: 'tag-light', color: '#f59e0b', icon: '💡' };
-      return { label: 'ปิดถนน/จัดงาน', tagClass: 'tag-road', color: '#6366f1', icon: '🚧' };
-    }
-
-    function renderMarkers() {
-      markerLayer.clearLayers();
-      const now = Date.now();
-
-      hazards.forEach((h) => {
-        if (h.isResolved && h.resolvedAt && now - h.resolvedAt > 5 * 60 * 1000) {
-          return;
-        }
-
-        const meta = getCategoryMeta(h.type);
-        const pinColor = h.isResolved
-          ? '#16a34a'
-          : h.type === 'smoke' || h.reportCount > 1
-          ? '#dc2626'
-          : meta.color;
-
-        const isSelected = selectedHazardId === h.id;
-
-        const pinIcon = L.divIcon({
-          className: '',
-          html: `<div class="pin-marker ${isSelected ? 'selected' : ''}" style="background:${pinColor};"><span>${h.isResolved ? '✓' : meta.icon}</span></div>`,
-          iconSize: [28, 28],
-          iconAnchor: [14, 28]
-        });
-
-        const marker = L.marker([h.lat, h.lng], { icon: pinIcon }).addTo(markerLayer);
-
-        marker.on('click', (e) => {
-          L.DomEvent.stopPropagation(e);
-          selectedHazardId = h.id;
-          toggleSidebar(false);
-          renderAll();
-        });
-      });
-    }
-
-    function selectHazard(id) {
-      selectedHazardId = id;
-      const item = hazards.find((h) => h.id === id);
-      if (item) {
-        map.flyTo([item.lat, item.lng], 18);
-      }
-      toggleSidebar(false);
-      renderAll();
-    }
-
-    function clearSelectedHazard() {
-      selectedHazardId = null;
-      renderAll();
-    }
-
-    function updateStatus(id, option, resolved, event) {
-      if (event) event.stopPropagation();
-      const item = hazards.find((h) => h.id === id);
-      if (!item) return;
-      item.statusOption = option;
-      item.isResolved = resolved;
-      item.resolvedAt = resolved ? Date.now() : null;
-      item.updatedAt = 'อัปเดตสถานะเมื่อสักครู่';
-      renderAll();
-    }
-
-    function getStatusButtonsHtml(h) {
-      if (h.type === 'smoke') {
-        return `
-          <button class="status-btn ${!h.isResolved ? 'active-danger' : ''}" onclick="updateStatus('${h.id}','still_smoking',false,event)">ยังสูบอยู่</button>
-          <button class="status-btn ${h.isResolved ? 'active-safe' : ''}" onclick="updateStatus('${h.id}','gone',true,event)">ไม่อยู่แล้ว</button>
-        `;
-      } else if (h.type === 'light') {
-        return `
-          <button class="status-btn ${!h.isResolved ? 'active-danger' : ''}" onclick="updateStatus('${h.id}','not_fixed',false,event)">ยังไม่แก้ไข</button>
-          <button class="status-btn ${h.isResolved ? 'active-safe' : ''}" onclick="updateStatus('${h.id}','fixed',true,event)">แก้ไขแล้ว</button>
-        `;
-      } else {
-        return `
-          <button class="status-btn ${!h.isResolved ? 'active-danger' : ''}" onclick="updateStatus('${h.id}','still_closed',false,event)">ยังปิดถนนอยู่</button>
-          <button class="status-btn ${h.isResolved ? 'active-safe' : ''}" onclick="updateStatus('${h.id}','reopened',true,event)">เลิกปิดถนนแล้ว</button>
-        `;
-      }
-    }
-
-    function renderSidebar() {
-      const sidebar = document.getElementById('sidebarContent');
-
-      if (selectedHazardId) {
-        const h = hazards.find((item) => item.id === selectedHazardId);
-        if (h) {
-          const meta = getCategoryMeta(h.type);
-          const isMulti = h.reportCount > 1;
-          sidebar.innerHTML = `
-            <div class="detail-panel">
-              <div class="sidebar-top-bar">
-                <button class="back-btn" onclick="clearSelectedHazard()">← กลับไปดูรายการทั้งหมด</button>
-              </div>
-
-              <div class="detail-box">
-                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                  <span class="tag ${meta.tagClass}">${meta.label}</span>
-                  ${h.sourceType === 'sensor_auto' ? '<span class="tag-auto">แจ้งเตือนอัตโนมัติ</span>' : ''}
-                  ${isMulti ? `<span class="tag-multi">จุดนี้มีคนแจ้งหลายคน (${h.reportCount})</span>` : ''}
-                </div>
-
-                <div style="font-size:16px;font-weight:700;color:#0f172a;line-height:1.35;">
-                  ${h.title}
-                </div>
-
-                ${
-                  h.photoUrl
-                    ? `<img src="${h.photoUrl}" alt="รูปภาพประกอบจุดเสี่ยง" style="width:100%;max-height:175px;object-fit:cover;border-radius:10px;border:1px solid #cbd5e1;" />`
-                    : ''
-                }
-
-                <div style="font-size:12px;color:#475569;line-height:1.5;">
-                  ${h.detailNote || 'ไม่มีรายละเอียดเพิ่มเติม'}
-                </div>
-
-                <div class="detail-row">
-                  <span style="color:#64748b;">ตำแหน่งบริเวณ</span>
-                  <strong>${h.locationName}</strong>
-                </div>
-                <div class="detail-row">
-                  <span style="color:#64748b;">พิกัด (Lat, Lng)</span>
-                  <span>${h.lat.toFixed(5)}, ${h.lng.toFixed(5)}</span>
-                </div>
-                <div class="detail-row">
-                  <span style="color:#64748b;">ช่องทางที่แจ้ง</span>
-                  <span>${h.channel || 'ผู้ใช้งานในพื้นที่'}</span>
-                </div>
-                <div class="detail-row" style="border-bottom:none;">
-                  <span style="color:#64748b;">อัปเดตล่าสุด</span>
-                  <span>${h.updatedAt}</span>
-                </div>
-
-                <div style="margin-top:4px;">
-                  <div style="font-size:11.5px;font-weight:600;color:#334155;margin-bottom:6px;">อัปเดตสถานะจุดนี้:</div>
-                  <div class="status-actions">${getStatusButtonsHtml(h)}</div>
-                </div>
-              </div>
-            </div>
-          `;
-          return;
-        }
-      }
-
-      const activeList = hazards.filter((h) => !h.isResolved);
-      const resolvedList = hazards.filter((h) => h.isResolved);
-      const autoSmokeCount = activeList.filter((h) => h.sourceType === 'sensor_auto').length;
-
-      sidebar.innerHTML = `
-        <div class="sidebar-top-bar">
-          <span style="font-size:12px;font-weight:700;color:#14532d;">แผงติดตามจุดเสี่ยง</span>
+    <!-- แถบรายการเหตุการณ์ด้านขวา -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-top-row">
+          <div class="sidebar-heading">รายการแจ้งเตือนและจุดเสี่ยง</div>
         </div>
-
         <div class="stats-row">
-          <div class="stat-card">
-            <div class="stat-num">${activeList.length}</div>
-            <div class="stat-label">จุดเสี่ยงที่ยังไม่แก้ไข</div>
+          <div class="stat-box">
+            <div id="statActive" class="stat-num" style="color: var(--danger);">0</div>
+            <div class="stat-label">กำลังดำเนินการ</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-num" style="color:#dc2626;">${autoSmokeCount}</div>
-            <div class="stat-label">แจ้งเตือนบุหรี่อัตโนมัติ</div>
+          <div class="stat-box">
+            <div id="statSmoke" class="stat-num" style="color: #b91c1c;">0</div>
+            <div class="stat-label">เคสควันบุหรี่</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-num" style="color:#16a34a;">${resolvedList.length}</div>
-            <div class="stat-label">แก้ไขเสร็จสิ้นแล้ว</div>
-          </div>
-        </div>
-
-        <div>
-          <div class="section-header">
-            <span>รายการที่แจ้งเข้ามา &amp; แจ้งเตือนอัตโนมัติ</span>
-            <span class="badge-count">${activeList.length} รายการ</span>
-          </div>
-          <div class="feed-list">
-            ${activeList.map((h) => buildCardHtml(h)).join('')}
-          </div>
-        </div>
-
-        <div>
-          <div class="section-header">
-            <span>รายการที่แก้ไขเสร็จสิ้นแล้ว</span>
-            <span class="badge-count" style="background:#f1f5f9;color:#475569;">${resolvedList.length} รายการ</span>
-          </div>
-          <div style="font-size:10.5px;color:#64748b;margin-bottom:6px;">
-            * หมุดที่แก้ไขเสร็จสิ้นจะซ่อนออกจากแผนที่หลักอัตโนมัติภายใน 5 นาที
-          </div>
-          <div class="feed-list">
-            ${
-              resolvedList.length
-                ? resolvedList.map((h) => buildCardHtml(h)).join('')
-                : '<div style="font-size:11.5px;color:#94a3b8;text-align:center;padding:10px;">ยังไม่มีรายการที่แก้ไขเสร็จสิ้น</div>'
-            }
-          </div>
-        </div>
-      `;
-    }
-
-    function buildCardHtml(h) {
-      const meta = getCategoryMeta(h.type);
-      const isMulti = h.reportCount > 1;
-      return `
-        <div class="hazard-card ${isMulti ? 'multi-report' : ''}" onclick="selectHazard('${h.id}')">
-          <div class="card-top">
-            <div style="display:flex;gap:5px;flex-wrap:wrap;">
-              <span class="tag ${meta.tagClass}">${meta.label}</span>
-              ${h.sourceType === 'sensor_auto' ? '<span class="tag-auto">แจ้งเตือนอัตโนมัติ</span>' : ''}
-              ${isMulti ? `<span class="tag-multi">จุดนี้มีคนแจ้งหลายคน (${h.reportCount})</span>` : ''}
-            </div>
-          </div>
-          <div class="card-title">${h.title}</div>
-          <div class="card-meta">📍 ${h.locationName} • ${h.updatedAt}${h.photoUrl ? ' • 📷 มีรูปภาพ' : ''}</div>
-          <div class="status-actions">${getStatusButtonsHtml(h)}</div>
-        </div>
-      `;
-    }
-
-    function simulateAutoSmoke() {
-      const smokeSpots = [
-        { locationName: 'มุมอับข้างอาคาร 48', lat: 13.71272, lng: 100.53782 },
-        { locationName: 'ซอยทางเดินหลังอาคาร 50', lat: 13.71305, lng: 100.53825 },
-        { locationName: 'ทางเดินข้างอาคาร 19', lat: 13.71432, lng: 100.53762 }
-      ];
-      const pick = smokeSpots[Math.floor(Math.random() * smokeSpots.length)];
-      addOrMergeHazard({
-        type: 'smoke',
-        title: 'ตรวจพบควันบุหรี่อัตโนมัติ (ESP32 + PMS5003)',
-        locationName: pick.locationName,
-        lat: pick.lat,
-        lng: pick.lng,
-        sourceType: 'sensor_auto',
-        channel: 'กล่อง IoT อัตโนมัติ (ESP32)',
-        statusOption: 'still_smoking',
-        detailNote: 'เซ็นเซอร์ PMS5003 ตรวจพบค่าฝุ่นควันบุหรี่เกินเกณฑ์มาตรฐาน'
-      });
-      map.flyTo([pick.lat, pick.lng], 18);
-    }
-
-    let uploadedPhotoDataUrl = null;
-
-    function previewReportPhoto(event) {
-      const file = event.target.files && event.target.files[0];
-      const preview = document.getElementById('repPhotoPreview');
-      if (!file) {
-        uploadedPhotoDataUrl = null;
-        preview.style.display = 'none';
-        preview.src = '';
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        uploadedPhotoDataUrl = e.target.result;
-        preview.src = uploadedPhotoDataUrl;
-        preview.style.display = 'block';
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function openReportModal() {
-      document.getElementById('reportModal').classList.add('open');
-    }
-
-    function closeReportModal() {
-      document.getElementById('reportModal').classList.remove('open');
-      customClickedLatLng = null;
-      uploadedPhotoDataUrl = null;
-      const fileInput = document.getElementById('repPhoto');
-      const preview = document.getElementById('repPhotoPreview');
-      if (fileInput) fileInput.value = '';
-      if (preview) {
-        preview.style.display = 'none';
-        preview.src = '';
-      }
-    }
-
-    function submitManualReport() {
-      const type = document.getElementById('repType').value;
-      const detail = document.getElementById('repDetail').value.trim();
-
-      const lat = customClickedLatLng ? customClickedLatLng.lat : RMUTK_CENTER[0];
-      const lng = customClickedLatLng ? customClickedLatLng.lng : RMUTK_CENTER[1];
-      const locationName = `พิกัด ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-
-      const defaultTitles = {
-        smoke: 'แจ้งพบการสูบบุหรี่ในพื้นที่',
-        light: 'แจ้งไฟทางเดินดับ / จุดมืด',
-        road_closed: 'แจ้งปิดถนน / กิจกรรมกีดขวางทางเดิน'
-      };
-
-      const defaultStatus = {
-        smoke: 'still_smoking',
-        light: 'not_fixed',
-        road_closed: 'still_closed'
-      };
-
-      addOrMergeHazard({
-        type,
-        title: detail || defaultTitles[type],
-        locationName,
-        lat,
-        lng,
-        photoUrl: uploadedPhotoDataUrl,
-        sourceType: 'web_user',
-        channel: 'หน้าเว็บ RMUTK SafeWalk',
-        statusOption: defaultStatus[type],
-        detailNote: detail || 'ผู้ใช้งานปักหมุดแจ้งจุดเสี่ยงบนแผนที่'
-      });
-
-      document.getElementById('repDetail').value = '';
-      closeReportModal();
-      map.flyTo([lat, lng], 18);
-    }
-
-    function renderAll() {
-      renderMarkers();
-      renderSidebar();
-    }
-
-    syncEdgeButton();
-    setInterval(renderMarkers, 30000);
-    renderAll();
-  </script>
-</body>
-</html>
+          <div class="stat-box">
+            <div id
