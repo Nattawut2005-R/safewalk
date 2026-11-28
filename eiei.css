@@ -55,7 +55,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 10px;
 }
 
@@ -88,12 +88,18 @@ body {
   color: var(--muted);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .pill-btn {
   background: var(--surface);
   color: var(--text);
   border: 1.5px solid var(--primary);
   border-radius: 999px;
-  padding: 7px 14px;
+  padding: 7px 13px;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -101,11 +107,7 @@ body {
   align-items: center;
   gap: 6px;
   white-space: nowrap;
-}
-
-.pill-btn.active {
-  background: var(--primary);
-  color: #ffffff;
+  text-decoration: none;
 }
 
 .nav-tabs {
@@ -193,6 +195,7 @@ body {
   font-weight: 600;
 }
 
+/* ปุ่มกรองหมวดหมู่อยู่ในหน้า "เรื่องที่คนแจ้งเข้ามา" และไม่มีปุ่ม "แก้ไขแล้ว" */
 .filter-scroll {
   display: flex;
   gap: 8px;
@@ -226,8 +229,7 @@ body {
 
 .filter-scroll [data-category="resolved"],
 .filter-scroll [data-filter="resolved"],
-.filter-scroll .filter-resolved-btn,
-.filter-scroll .filter-resolved-pill {
+.filter-resolved-btn {
   display: none !important;
 }
 
