@@ -14,7 +14,7 @@
   <style>
     #adminMap {
       width: 100%;
-      height: 300px;
+      height: 340px;
       border-radius: 14px;
       border: 1.5px solid var(--border);
       margin-bottom: 10px;
@@ -72,7 +72,7 @@
         </div>
         <div>
           <div class="brand-title">RMUTK SafeWalk Admin</div>
-          <div class="brand-sub">มทร.กรุงเทพ · ปักหมุดกำหนดช่วงวันและจัดการรายการ</div>
+          <div class="brand-sub">มทร.กรุงเทพ · ดูทุกหมุด ปักหมุดช่วงวัน และจัดการรายการ</div>
         </div>
       </div>
       <div class="header-actions">
@@ -87,14 +87,14 @@
       </div>
     </div>
 
-    <!-- กล่องปักหมุดบนแผนที่ + กำหนดวันเริ่มถึงวันสิ้นสุด -->
+    <!-- กล่องแผนที่รวมทุกหมุด + ปักหมุดจุดเสี่ยงและกำหนดช่วงวันแสดงผล -->
     <div class="hazard-card">
       <div class="card-title">
         <iconify-icon icon="lucide:map-pin-plus" width="17"></iconify-icon>
-        <span>ปักหมุดจุดเสี่ยงและกำหนดช่วงวันแสดงผล</span>
+        <span>แผนที่รวมทุกหมุดและปักหมุดกำหนดช่วงวัน</span>
       </div>
       <div class="card-sub" style="margin-top:4px;">
-        คลิกบนแผนที่เพื่อเลือกตำแหน่งปักหมุด แล้วตั้งค่าช่วงวันที่เริ่มแสดงผลถึงวันที่สิ้นสุด
+        แสดงหมุดรายการทั้งหมดในฐานข้อมูล และคลิกบนแผนที่เพื่อเลื่อนหมุดตำแหน่งที่จะปักใหม่
       </div>
 
       <div id="adminMap" style="margin-top:10px;"></div>
@@ -238,6 +238,7 @@
     let categoryFilter = "all";
     let adminMap = null;
     let draftMarker = null;
+    let adminHazardLayer = null;
 
     function getDb() {
       return typeof sbClient !== "undefined" && sbClient ? sbClient : null;
@@ -258,6 +259,64 @@
       </div>`;
     }
 
+    function createAdminCategoryIcon(category, isResolved) {
+      const catKey = String(category || "").toLowerCase();
+      const iconName = CATEGORY_ICONS[catKey] || (isResolved ? "lucide:check" : "lucide:alert-circle");
+      const bg = isResolved ? "#16a34a" : "#dc2626";
+      return L.divIcon({
+        className: "safewalk-custom-pin",
+        html: `<div style="
+          width:30px;height:30px;border-radius:50%;
+          background:${bg};color:#ffffff;
+          display:flex;align-items:center;justify-content:center;
+          border:2.5px solid #ffffff;box-shadow:0 2px 6px rgba(0,0,0,0.35);
+        "><iconify-icon icon="${iconName}" width="15"></iconify-icon></div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+      });
+    }
+
+    function getFilteredAdminHazards() {
+      return adminHazards.filter((item) => {
+        const matchStatus =
+          statusFilter === "resolved"
+            ? Boolean(item.is_resolved)
+            : statusFilter === "active"
+            ? !item.is_resolved
+            : true;
+        const matchCategory =
+          categoryFilter === "all" ||
+          String(item.category || "").toLowerCase() === categoryFilter;
+        return matchStatus && matchCategory;
+      });
+    }
+
+    function renderAdminMapPins() {
+      if (!adminMap || !adminHazardLayer) return;
+      adminHazardLayer.clearLayers();
+
+      const items = getFilteredAdminHazards();
+      items.forEach((item) => {
+        const lat = Number(item.lat);
+        const lng = Number(item.lng);
+        if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+
+        const catKey = String(item.category || "").toLowerCase();
+        const catLabel = CATEGORY_LABELS[catKey] || item.category || "จุดเสี่ยง";
+        const isResolved = Boolean(item.is_resolved);
+
+        const m = L.marker([lat, lng], {
+          icon: createAdminCategoryIcon(catKey, isResolved),
+        });
+        m.bindPopup(`
+          <strong>${catLabel} (${isResolved ? "แก้ไขแล้ว" : "กำลังดำเนินการ"})</strong><br/>
+          <span>${item.description || catLabel}</span><br/>
+          <small>รหัส: ${item.id} · ${lat.toFixed(5)}, ${lng.toFixed(5)}</small>
+        `);
+        adminHazardLayer.addLayer(m);
+      });
+    }
+
     function initAdminMap() {
       const mapEl = document.getElementById("adminMap");
       if (!mapEl || !window.L) return;
@@ -271,7 +330,14 @@
         attribution: "© OpenStreetMap",
       }).addTo(adminMap);
 
-      draftMarker = L.marker([initLat, initLng], { draggable: true }).addTo(adminMap);
+      adminHazardLayer = L.layerGroup().addTo(adminMap);
+
+      draftMarker = L.marker([initLat, initLng], {
+        draggable: true,
+        zIndexOffset: 900,
+      })
+        .bindPopup("ตำแหน่งปักหมุดใหม่ (ลากหรือคลิกบนแผนที่เพื่อย้าย)")
+        .addTo(adminMap);
 
       draftMarker.on("dragend", () => {
         const pt = draftMarker.getLatLng();
@@ -369,19 +435,7 @@
       const container = document.getElementById("adminListContainer");
       if (!container) return;
 
-      const filtered = adminHazards.filter((item) => {
-        const matchStatus =
-          statusFilter === "resolved"
-            ? Boolean(item.is_resolved)
-            : statusFilter === "active"
-            ? !item.is_resolved
-            : true;
-        const matchCategory =
-          categoryFilter === "all" ||
-          String(item.category || "").toLowerCase() === categoryFilter;
-        return matchStatus && matchCategory;
-      });
-
+      const filtered = getFilteredAdminHazards();
       if (filtered.length === 0) {
         container.innerHTML = `<div class="hazard-card"><div class="card-sub">ไม่มีรายการจุดเสี่ยงตามตัวกรองที่เลือก</div></div>`;
         return;
@@ -478,6 +532,7 @@
       showAdminNotice("");
       adminHazards = Array.isArray(data) ? data : [];
       updateAdminCounts();
+      renderAdminMapPins();
       renderAdminList();
     }
 
@@ -526,12 +581,14 @@
     document.getElementById("adminFilterActive")?.addEventListener("click", () => {
       statusFilter = statusFilter === "active" ? "all" : "active";
       updateAdminCounts();
+      renderAdminMapPins();
       renderAdminList();
     });
 
     document.getElementById("adminFilterResolved")?.addEventListener("click", () => {
       statusFilter = statusFilter === "resolved" ? "all" : "resolved";
       updateAdminCounts();
+      renderAdminMapPins();
       renderAdminList();
     });
 
@@ -542,6 +599,7 @@
           .forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
         categoryFilter = btn.dataset.category || "all";
+        renderAdminMapPins();
         renderAdminList();
       });
     });
