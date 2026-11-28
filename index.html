@@ -128,7 +128,7 @@
         </div>
         <p style="margin:8px 0 0;font-size:13px;color:var(--muted);">
           • เลือกโหวตได้ 1 ครั้งต่อรายการ (ยังไม่แก้ไข หรือ แก้ไขแล้ว) โดยปุ่มยังคงแสดงผลตามปกติ<br/>
-          • หากไม่มีคนกดโหวตเลย รายการจะอยู่บนหน้าเว็บ 15 นาที<br/>
+          • หากไม่มีคนกดโหวตเลย รายการจะอยู่บนหน้าเว็บ 15 นาที (ยกเว้นหมุดที่แอดมินกำหนดช่วงเวลาไว้ ซึ่งจะแสดงจนครบกำหนดเวลา)<br/>
           • เมื่อมีคนกดโหวต "แก้ไขแล้ว" คนแรก ระบบจะเริ่มนับ 15 นาที ระหว่างนี้ยังเป็น "ยังไม่แก้ไข"<br/>
           • เมื่อครบ 15 นาทีแล้วคะแนน "แก้ไขแล้ว" ชนะ จะเปลี่ยนเป็น "แก้ไขแล้ว" และย้ายไปอยู่ฝั่งแก้ไขแล้ว
         </p>
@@ -221,6 +221,7 @@
     }
 
     function computeState(item, nowMs = Date.now()) {
+      // 1) ถ้าอยู่นอกช่วงเวลา start_at - end_at ให้ซ่อนทันที (หายไปตามเวลาที่กำหนด)
       if (!isWithinScheduledWindow(item, nowMs)) {
         return {
           visibleOnMain: false,
@@ -230,11 +231,6 @@
         };
       }
 
-      const createdMs = new Date(item.created_at || nowMs).getTime();
-      const resVotes = Number(item.resolved_votes ?? 0);
-      const unresVotes = Number(item.unresolved_votes ?? 0);
-      const totalVotes = resVotes + unresVotes;
-
       if (item.is_resolved) {
         return {
           visibleOnMain: false,
@@ -243,6 +239,21 @@
           shouldMarkResolved: false,
         };
       }
+
+      // 2) ถ้าเป็นหมุดที่ Admin ปัก หรือมีการตั้งเวลา end_at ไว้ ให้แสดงตลอดจนครบเวลา end_at (ไม่หายไปตอน 15 นาที)
+      if (item.created_by_admin || item.end_at) {
+        return {
+          visibleOnMain: true,
+          isResolved: false,
+          pendingSeconds: 0,
+          shouldMarkResolved: false,
+        };
+      }
+
+      const createdMs = new Date(item.created_at || nowMs).getTime();
+      const resVotes = Number(item.resolved_votes ?? 0);
+      const unresVotes = Number(item.unresolved_votes ?? 0);
+      const totalVotes = resVotes + unresVotes;
 
       if (resVotes > 0 && item.first_vote_at) {
         const firstResolvedMs = new Date(item.first_vote_at).getTime();
@@ -294,11 +305,22 @@
     async function syncResolvedDecisions() {
       const db = getDb();
       if (!db) return;
-      const nowIso = new Date().toISOString();
+      const nowMs = Date.now();
+      const nowIso = new Date(nowMs).toISOString();
 
       for (const item of allHazards) {
-        const st = computeState(item);
-        if (st.shouldMarkResolved && !item.is_resolved) {
+        if (item.is_resolved) continue;
+
+        let expiredBySchedule = false;
+        if (item.end_at) {
+          const endMs = new Date(item.end_at).getTime();
+          if (!Number.isNaN(endMs) && nowMs > endMs) {
+            expiredBySchedule = true;
+          }
+        }
+
+        const st = computeState(item, nowMs);
+        if (expiredBySchedule || st.shouldMarkResolved) {
           item.is_resolved = true;
           item.resolved_decided_at = nowIso;
           const { error } = await db
@@ -516,6 +538,10 @@
           const minsLeft = st.pendingSeconds > 0 ? Math.ceil(st.pendingSeconds / 60) : 0;
           const catKey = String(item.category || "").toLowerCase();
           const catIcon = CATEGORY_ICONS[catKey] || "lucide:alert-circle";
+          const scheduleText =
+            item.start_at || item.end_at
+              ? `ช่วงเวลา: ${item.start_at ? new Date(item.start_at).toLocaleString("th-TH") : "-"} ถึง ${item.end_at ? new Date(item.end_at).toLocaleString("th-TH") : "-"}`
+              : "";
 
           return `
             <div class="hazard-card">
@@ -531,6 +557,7 @@
               </div>
               <div>${item.description || ""}</div>
               ${item.image_url ? `<img src="${item.image_url}" alt="รูปจุดเสี่ยง" class="hazard-img" />` : ""}
+              ${scheduleText ? `<div class="card-sub" style="margin-top:4px;">${scheduleText}</div>` : ""}
               <div class="card-meta">
                 <span>
                   <iconify-icon icon="lucide:map-pin" width="12"></iconify-icon>
