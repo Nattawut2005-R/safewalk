@@ -114,7 +114,7 @@ def send_line_message(reply_token: str, text: str, quick_items: list[dict] | Non
     if quick_items:
         message_obj["quickReply"] = {"items": quick_items}
     try:
-        requests.post(
+        resp = requests.post(
             "https://api.line.me/v2/bot/message/reply",
             headers={
                 "Content-Type": "application/json",
@@ -126,6 +126,8 @@ def send_line_message(reply_token: str, text: str, quick_items: list[dict] | Non
             },
             timeout=10,
         )
+        if resp.status_code >= 400:
+            print("[LINE reply HTTP error]:", resp.status_code, resp.text)
     except Exception as exc:
         print("[LINE reply error]:", exc)
 
@@ -384,16 +386,23 @@ def health():
 
 
 @app.post("/webhook")
+@app.post("/webhook/line")
 def webhook():
     signature = request.headers.get("X-Line-Signature", "")
     raw_body = request.get_data()
 
     if not verify_line_signature(raw_body, signature):
+        print("[LINE signature invalid]")
         return jsonify({"error": "Invalid signature"}), 401
 
     payload = request.get_json(silent=True) or {}
-    for event in payload.get("events", []):
-        process_event(event)
+    events = payload.get("events", [])
+    print(f"[LINE webhook received] events={len(events)}")
+    for event in events:
+        try:
+            process_event(event)
+        except Exception as exc:
+            print("[process_event error]:", exc)
 
     return jsonify({"status": "ok"}), 200
 
