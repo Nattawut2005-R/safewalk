@@ -184,7 +184,32 @@
       localStorage.setItem(`safewalk_voted_${hazardId}`, choice);
     }
 
+    function isWithinScheduledWindow(item, nowMs = Date.now()) {
+      if (item.start_at) {
+        const startMs = new Date(item.start_at).getTime();
+        if (!Number.isNaN(startMs) && nowMs < startMs) {
+          return false;
+        }
+      }
+      if (item.end_at) {
+        const endMs = new Date(item.end_at).getTime();
+        if (!Number.isNaN(endMs) && nowMs > endMs) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     function computeState(item, nowMs = Date.now()) {
+      if (!isWithinScheduledWindow(item, nowMs)) {
+        return {
+          visibleOnMain: false,
+          isResolved: Boolean(item.is_resolved),
+          pendingSeconds: 0,
+          shouldMarkResolved: false,
+        };
+      }
+
       const createdMs = new Date(item.created_at || nowMs).getTime();
       const resVotes = Number(item.resolved_votes ?? 0);
       const unresVotes = Number(item.unresolved_votes ?? 0);
@@ -324,25 +349,28 @@
       trackUserLocation();
     }
 
-    function createPinIcon(isResolved) {
+    function createCategoryPinIcon(category, isResolved) {
+      const catKey = String(category || "").toLowerCase();
+      const iconName = CATEGORY_ICONS[catKey] || (isResolved ? "lucide:check" : "lucide:alert-circle");
       const bg = isResolved ? "#16a34a" : "#dc2626";
-      const iconName = isResolved ? "lucide:check" : "lucide:alert-circle";
+
       return L.divIcon({
         className: "safewalk-custom-pin",
         html: `<div style="
-          width:28px;height:28px;border-radius:50%;
+          width:32px;height:32px;border-radius:50%;
           background:${bg};color:#ffffff;
           display:flex;align-items:center;justify-content:center;
-          border:2px solid #ffffff;box-shadow:0 2px 6px rgba(0,0,0,0.35);
+          border:2.5px solid #ffffff;box-shadow:0 2px 7px rgba(0,0,0,0.35);
         "><iconify-icon icon="${iconName}" width="16"></iconify-icon></div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14],
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
       });
     }
 
     function getFilteredItems() {
       const nowMs = Date.now();
       return allHazards.filter((item) => {
+        if (!isWithinScheduledWindow(item, nowMs)) return false;
         const st = computeState(item, nowMs);
 
         const matchesStatus =
@@ -367,6 +395,7 @@
       let resolvedCount = 0;
 
       allHazards.forEach((item) => {
+        if (!isWithinScheduledWindow(item, nowMs)) return;
         const st = computeState(item, nowMs);
         if (st.isResolved) {
           resolvedCount += 1;
@@ -425,10 +454,14 @@
         if (Number.isNaN(lat) || Number.isNaN(lng)) return;
 
         const st = computeState(item);
-        const marker = L.marker([lat, lng], { icon: createPinIcon(st.isResolved) });
+        const catKey = String(item.category || "").toLowerCase();
+        const catLabel = CATEGORY_LABELS[catKey] || item.category || "จุดเสี่ยง";
+        const marker = L.marker([lat, lng], {
+          icon: createCategoryPinIcon(catKey, st.isResolved),
+        });
         marker.bindPopup(`
-          <strong>${st.isResolved ? "แก้ไขแล้ว" : "กำลังดำเนินการ"}</strong><br/>
-          <span>${item.description || CATEGORY_LABELS[item.category] || item.category}</span><br/>
+          <strong>${catLabel} (${st.isResolved ? "แก้ไขแล้ว" : "กำลังดำเนินการ"})</strong><br/>
+          <span>${item.description || catLabel}</span><br/>
           <small>${lat.toFixed(5)}, ${lng.toFixed(5)}</small>
         `);
         markerGroup.addLayer(marker);
