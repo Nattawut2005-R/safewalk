@@ -56,6 +56,15 @@
       font-family: inherit;
     }
 
+    .hazard-thumb {
+      width: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-top: 8px;
+      border: 1px solid var(--border);
+    }
+
     @media (max-width: 480px) {
       .form-grid-2 {
         grid-template-columns: 1fr;
@@ -144,6 +153,14 @@
           <span>รายละเอียดจุดเสี่ยง</span>
         </label>
         <input id="adminDesc" class="field-input" type="text" placeholder="เช่น ปิด งานลอยกระทง หรือจุดที่พบปัญหา" />
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="adminImageFile">
+          <iconify-icon icon="lucide:image" width="13"></iconify-icon>
+          <span>แนบรูปภาพจุดเสี่ยง (อัปโหลดไป Cloudflare R2)</span>
+        </label>
+        <input id="adminImageFile" class="field-input" type="file" accept="image/*" />
       </div>
 
       <div class="form-grid-2">
@@ -259,6 +276,36 @@
       </div>`;
     }
 
+    async function uploadImageToR2(file) {
+      const signRes = await fetch("/api/upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type || "image/jpeg",
+        }),
+      });
+
+      const signData = await signRes.json();
+      if (!signRes.ok || !signData.uploadUrl || !signData.imageUrl) {
+        throw new Error(signData.error || "ขอ URL อัปโหลดรูปจาก R2 ไม่สำเร็จ");
+      }
+
+      const putRes = await fetch(signData.uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "image/jpeg",
+        },
+        body: file,
+      });
+
+      if (!putRes.ok) {
+        throw new Error(`อัปโหลดไฟล์ขึ้น R2 ไม่สำเร็จ (HTTP ${putRes.status})`);
+      }
+
+      return signData.imageUrl;
+    }
+
     function createAdminCategoryIcon(category, isResolved) {
       const catKey = String(category || "").toLowerCase();
       const iconName = CATEGORY_ICONS[catKey] || (isResolved ? "lucide:check" : "lucide:alert-circle");
@@ -311,6 +358,7 @@
         m.bindPopup(`
           <strong>${catLabel} (${isResolved ? "แก้ไขแล้ว" : "กำลังดำเนินการ"})</strong><br/>
           <span>${item.description || catLabel}</span><br/>
+          ${item.image_url ? `<img src="${item.image_url}" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;margin-top:6px;" />` : ""}
           <small>รหัส: ${item.id} · ${lat.toFixed(5)}, ${lng.toFixed(5)}</small>
         `);
         adminHazardLayer.addLayer(m);
@@ -371,6 +419,7 @@
         return;
       }
 
+      const saveBtn = document.getElementById("saveAdminPinBtn");
       const lat = Number(document.getElementById("adminLat")?.value);
       const lng = Number(document.getElementById("adminLng")?.value);
       const category = document.getElementById("adminCategory")?.value || "other";
@@ -378,42 +427,54 @@
       const customId = (document.getElementById("adminCode")?.value || "").trim();
       const startRaw = document.getElementById("adminStartAt")?.value;
       const endRaw = document.getElementById("adminEndAt")?.value;
+      const imageFile = document.getElementById("adminImageFile")?.files?.[0] || null;
 
       if (Number.isNaN(lat) || Number.isNaN(lng)) {
         showAdminNotice("กรุณาเลือกหรือกรอกพิกัดละติจูด/ลองจิจูดให้ถูกต้อง");
         return;
       }
 
-      const randomCode = "HZ-ADM-" + Math.floor(100000 + Math.random() * 900000);
-      const payload = {
-        id: customId || randomCode,
-        category,
-        lat,
-        lng,
-        description: description || CATEGORY_LABELS[category] || category,
-        is_resolved: false,
-        created_by_admin: true,
-        resolved_votes: 0,
-        unresolved_votes: 0,
-      };
+      try {
+        if (saveBtn) saveBtn.disabled = true;
+        let imageUrl = null;
+        if (imageFile) {
+          showAdminNotice("กำลังอัปโหลดรูปภาพไปยัง Cloudflare R2...", false);
+          imageUrl = await uploadImageToR2(imageFile);
+        }
 
-      if (startRaw) {
-        payload.start_at = new Date(startRaw).toISOString();
-      }
-      if (endRaw) {
-        payload.end_at = new Date(endRaw).toISOString();
-      }
+        const randomCode = "HZ-ADM-" + Math.floor(100000 + Math.random() * 900000);
+        const payload = {
+          id: customId || randomCode,
+          category,
+          lat,
+          lng,
+          description: description || CATEGORY_LABELS[category] || category,
+          is_resolved: false,
+          created_by_admin: true,
+          resolved_votes: 0,
+          unresolved_votes: 0,
+        };
 
-      const { error } = await db.from("hazards").insert(payload);
-      if (error) {
-        showAdminNotice(`บันทึกหมุดไม่สำเร็จ: ${error.message} (code: ${error.code || "-"})`);
-        return;
-      }
+        if (imageUrl) payload.image_url = imageUrl;
+        if (startRaw) payload.start_at = new Date(startRaw).toISOString();
+        if (endRaw) payload.end_at = new Date(endRaw).toISOString();
 
-      showAdminNotice(`ปักหมุดรหัส ${payload.id} เรียบร้อยแล้ว`, false);
-      document.getElementById("adminDesc").value = "";
-      document.getElementById("adminCode").value = "";
-      await loadAdminHazards();
+        const { error } = await db.from("hazards").insert(payload);
+        if (error) {
+          showAdminNotice(`บันทึกหมุดไม่สำเร็จ: ${error.message} (code: ${error.code || "-"})`);
+          return;
+        }
+
+        showAdminNotice(`ปักหมุดรหัส ${payload.id} เรียบร้อยแล้ว`, false);
+        document.getElementById("adminDesc").value = "";
+        document.getElementById("adminCode").value = "";
+        document.getElementById("adminImageFile").value = "";
+        await loadAdminHazards();
+      } catch (err) {
+        showAdminNotice(err.message || "เกิดข้อผิดพลาดระหว่างอัปโหลดรูป");
+      } finally {
+        if (saveBtn) saveBtn.disabled = false;
+      }
     }
 
     function updateAdminCounts() {
@@ -469,6 +530,7 @@
                 </span>
               </div>
               <div>${item.description || ""}</div>
+              ${item.image_url ? `<img src="${item.image_url}" alt="รูปจุดเสี่ยง" class="hazard-thumb" />` : ""}
               ${windowText ? `<div class="card-sub" style="margin-top:4px;">${windowText}</div>` : ""}
               <div class="card-meta">
                 <span>
