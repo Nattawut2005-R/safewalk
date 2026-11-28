@@ -63,6 +63,7 @@
         <button id="resetFilterBtn" class="reset-link-btn" type="button">แสดงทั้งหมด</button>
       </div>
 
+      <div id="dbStatusNotice" class="hazard-card hidden"></div>
       <div id="hazardListContainer"></div>
     </section>
 
@@ -101,9 +102,23 @@
     let mapInstance = null;
     let markerGroup = null;
     let userLocationMarker = null;
+    let lastDbErrorMsg = "";
 
     function getDb() {
       return typeof sbClient !== "undefined" && sbClient ? sbClient : null;
+    }
+
+    function showDbNotice(msg) {
+      lastDbErrorMsg = msg || "";
+      const el = document.getElementById("dbStatusNotice");
+      if (!el) return;
+      if (!msg) {
+        el.classList.add("hidden");
+        el.innerHTML = "";
+        return;
+      }
+      el.classList.remove("hidden");
+      el.innerHTML = `<div class="card-title" style="color:var(--danger);">⚠️ เชื่อมฐานข้อมูลไม่สำเร็จ</div><div class="card-sub" style="margin-top:4px;">${msg}</div>`;
     }
 
     function getVoterKey() {
@@ -200,13 +215,16 @@
         if (st.shouldMarkResolved && !item.is_resolved) {
           item.is_resolved = true;
           item.resolved_decided_at = nowIso;
-          await db
+          const { error } = await db
             .from("hazards")
             .update({
               is_resolved: true,
               resolved_decided_at: nowIso,
             })
             .eq("id", item.id);
+          if (error) {
+            console.error("[SafeWalk syncResolvedDecisions error]:", error);
+          }
         }
       }
     }
@@ -244,7 +262,9 @@
             userLocationMarker.setLatLng([lat, lng]);
           }
         },
-        () => {},
+        (err) => {
+          console.warn("[SafeWalk geolocation warning]:", err.message);
+        },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
       );
     }
@@ -385,7 +405,10 @@
 
       const items = getFilteredItems();
       if (items.length === 0) {
-        container.innerHTML = `<div class="hazard-card"><div class="card-sub">ไม่มีรายการตามตัวกรองที่เลือก</div></div>`;
+        const hint = lastDbErrorMsg
+          ? ` (${lastDbErrorMsg})`
+          : " (ไม่มีรายการที่ตรงเงื่อนไขเวลาหรือตัวกรอง)";
+        container.innerHTML = `<div class="hazard-card"><div class="card-sub">ไม่มีรายการตามตัวกรองที่เลือก${hint}</div></div>`;
         return;
       }
 
@@ -491,13 +514,17 @@
 
       const db = getDb();
       if (db) {
-        await db.from("hazard_votes").insert({
+        const voteRes = await db.from("hazard_votes").insert({
           hazard_id: hazardId,
           voter_key: getVoterKey(),
           vote_choice: choice,
         });
+        if (voteRes.error) {
+          console.error("[SafeWalk vote insert error]:", voteRes.error);
+          showDbNotice(`บันทึกโหวตไม่สำเร็จ: ${voteRes.error.message} (code: ${voteRes.error.code || "-"})`);
+        }
 
-        await db
+        const updRes = await db
           .from("hazards")
           .update({
             resolved_votes: nextResolved,
@@ -505,12 +532,19 @@
             first_vote_at: firstVoteAt,
           })
           .eq("id", hazardId);
+        if (updRes.error) {
+          console.error("[SafeWalk hazard update error]:", updRes.error);
+          showDbNotice(`อัปเดตคะแนนโหวตไม่สำเร็จ: ${updRes.error.message} (code: ${updRes.error.code || "-"})`);
+        }
       }
     }
 
     async function loadHazardsFromSupabase() {
       const db = getDb();
       if (!db) {
+        const msg = "ไม่พบตัวแปร sbClient จาก supabase-config.js";
+        console.error("[SafeWalk DB init error]:", msg);
+        showDbNotice(msg);
         refreshAllUI();
         return;
       }
@@ -520,7 +554,16 @@
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (!error && Array.isArray(data)) {
+      if (error) {
+        console.error("[SafeWalk loadHazardsFromSupabase error]:", error);
+        showDbNotice(`${error.message} (code: ${error.code || "-"}, details: ${error.details || "-"})`);
+        refreshAllUI();
+        return;
+      }
+
+      showDbNotice("");
+      if (Array.isArray(data)) {
+        console.log("[SafeWalk loaded rows]:", data.length, data);
         allHazards = data;
         await syncResolvedDecisions();
       }
