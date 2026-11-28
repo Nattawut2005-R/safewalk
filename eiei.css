@@ -40,13 +40,21 @@ body {
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+iconify-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: -0.15em;
+  flex-shrink: 0;
+}
+
 .container {
   max-width: 720px;
   margin: 0 auto;
   padding: 8px 10px 32px;
 }
 
-/* ส่วนหัวเว็บ: กระชับขึ้น */
+/* ส่วนหัวเว็บ */
 .header-card {
   background: var(--surface);
   border: 1.5px solid var(--border);
@@ -95,6 +103,12 @@ body {
   text-overflow: ellipsis;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .pill-btn {
   background: var(--surface);
   color: var(--text);
@@ -109,6 +123,7 @@ body {
   gap: 5px;
   white-space: nowrap;
   flex-shrink: 0;
+  text-decoration: none;
 }
 
 .pill-btn.active {
@@ -116,7 +131,7 @@ body {
   color: #ffffff;
 }
 
-/* แถบสลับหน้า 3 ปุ่ม: ไม่ตัดคำตกบรรทัดมั่วๆ */
+/* แถบสลับหน้า 3 ปุ่ม */
 .nav-tabs {
   display: flex;
   align-items: center;
@@ -137,7 +152,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 5px;
   white-space: nowrap;
 }
 
@@ -156,7 +171,7 @@ body {
   line-height: 1.2;
 }
 
-/* 2 กล่องสรุปสถานะในหน้า "เรื่องที่คนแจ้งเข้ามา": เล็กลง กระชับขึ้น */
+/* 2 กล่องสรุปสถานะในหน้า "เรื่องที่คนแจ้งเข้ามา" */
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -204,6 +219,9 @@ body {
   font-size: 12px;
   color: var(--muted);
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* แถบกรองหมวดหมู่แนวนอน */
@@ -231,6 +249,9 @@ body {
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .cat-chip.active {
@@ -274,7 +295,7 @@ body {
   white-space: nowrap;
 }
 
-/* แผนที่ Leaflet: เพิ่มพื้นที่ให้เห็นได้กว้างขึ้นบนจอโทรศัพท์ */
+/* แผนที่ Leaflet */
 #map {
   width: 100%;
   height: calc(100vh - 155px);
@@ -312,6 +333,9 @@ body {
 .card-title {
   font-size: 15px;
   font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .card-sub {
@@ -325,6 +349,9 @@ body {
   padding: 2px 9px;
   border-radius: 999px;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .status-tag.resolved {
@@ -352,11 +379,20 @@ body.dark-mode .status-tag.unresolved {
   flex-wrap: wrap;
 }
 
+.card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .vote-status-note {
   font-size: 12px;
   color: var(--primary);
   font-weight: 700;
   margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .card-actions {
@@ -376,11 +412,23 @@ body.dark-mode .status-tag.unresolved {
   font-weight: 700;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .action-btn.picked {
   background: var(--primary);
   color: #ffffff;
+}
+
+.action-btn.danger-btn {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.action-btn.danger-btn:hover {
+  background: var(--danger-soft);
 }
 
 .action-btn:disabled {
@@ -392,7 +440,6 @@ body.dark-mode .status-tag.unresolved {
   display: none !important;
 }
 
-/* ปรับระยะและขนาดฟอนต์ให้เหมาะกับหน้าจอมือถือโดยเฉพาะ */
 @media (max-width: 480px) {
   .container {
     padding: 6px 8px 24px;
