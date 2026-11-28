@@ -15,6 +15,7 @@ app = Flask(__name__)
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = (
     os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    or os.environ.get("SUPABASE_SERVICE_KEY")
     or os.environ.get("SUPABASE_ANON_KEY")
     or os.environ.get("SUPABASE_KEY", "")
 )
@@ -70,8 +71,11 @@ if R2_ACCOUNT_ID and R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY:
         region_name="auto",
     )
 
-# สถานะการแจ้งเหตุต่อ user_id:
-# step: "intro_photo" -> "waiting_details" -> "done"
+# ลำดับ step ต่อ user_id:
+# 1. "step_photo"    -> รอรูป หรือ กดไม่แนบรูป
+# 2. "step_category" -> รอเลือกเหตุการณ์ (ควันบุหรี่ / ไฟทางดับ / กีดขวาง / อื่นๆ)
+# 3. "step_location" -> รอกดปุ่มปักหมุด Location (หรือพิมพ์รายละเอียดเพิ่มก่อนปักหมุด)
+# 4. "done"          -> ปักหมุดและขอบคุณเรียบร้อย (เริ่มรอบใหม่เมื่อทักมาอีกครั้ง)
 sessions: dict[str, dict] = {}
 
 
@@ -79,17 +83,20 @@ def generate_hazard_id() -> str:
     return f"RMUTK-{uuid.uuid4().hex[:6].upper()}"
 
 
+def new_session() -> dict:
+    return {
+        "step": "step_photo",
+        "category": None,
+        "description": "",
+        "lat": None,
+        "lng": None,
+        "image_url": None,
+    }
+
+
 def get_session(user_id: str) -> dict:
     if user_id not in sessions:
-        sessions[user_id] = {
-            "step": "intro_photo",
-            "category": "other",
-            "description": "",
-            "lat": None,
-            "lng": None,
-            "image_url": None,
-            "created_id": None,
-        }
+        sessions[user_id] = new_session()
     return sessions[user_id]
 
 
@@ -132,44 +139,38 @@ def send_line_message(reply_token: str, text: str, quick_items: list[dict] | Non
         print("[LINE reply error]:", exc)
 
 
-def photo_choice_quick_reply() -> list[dict]:
+# --- Quick Reply แยกตามแต่ละขั้น ---
+def qr_photo() -> list[dict]:
     return [
-        {
-            "type": "action",
-            "action": {
-                "type": "cameraRoll",
-                "label": "แนบรูป",
-            },
-        },
-        {
-            "type": "action",
-            "action": {
-                "type": "message",
-                "label": "ไม่แนบรูป",
-                "text": "ไม่แนบรูป",
-            },
-        },
+        {"type": "action", "action": {"type": "camera", "label": "ถ่ายรูป"}},
+        {"type": "action", "action": {"type": "cameraRoll", "label": "แนบรูปจากอัลบั้ม"}},
+        {"type": "action", "action": {"type": "message", "label": "ไม่แนบรูป", "text": "ไม่แนบรูป"}},
     ]
 
 
-def category_quick_reply() -> list[dict]:
+def qr_category() -> list[dict]:
     labels = ["ควันบุหรี่", "ไฟทางดับ", "กีดขวาง", "อื่นๆ"]
     return [
-        {
-            "type": "action",
-            "action": {
-                "type": "message",
-                "label": lbl,
-                "text": lbl,
-            },
-        }
+        {"type": "action", "action": {"type": "message", "label": lbl, "text": lbl}}
         for lbl in labels
+    ]
+
+
+def qr_location() -> list[dict]:
+    return [
+        {"type": "action", "action": {"type": "location", "label": "📍 ปักหมุดตำแหน่ง"}},
+    ]
+
+
+def qr_restart() -> list[dict]:
+    return [
+        {"type": "action", "action": {"type": "message", "label": "แจ้งเหตุเพิ่มเติม", "text": "เริ่มแจ้งเหตุ"}},
     ]
 
 
 def upload_line_image_to_r2(message_id: str) -> str:
     if not s3_r2 or not R2_PUBLIC_BASE_URL:
-        raise RuntimeError("ยังไม่ได้ตั้งค่า R2 ให้ครบถ้วน")
+        raise RuntimeError("ยังไม่ได้ตั้งค่า R2 ใน Render")
 
     content_url = f"https://api-data.line.me/v2/bot/message/{message_id}/content"
     headers = {"Authorization": f"Bearer {LINE_CHANNEL_ACCESS_TOKEN}"}
@@ -222,27 +223,25 @@ def insert_hazard(session: dict) -> str:
     return hazard_id
 
 
-def update_hazard_fields(hazard_id: str, fields: dict) -> None:
-    if not supabase or not hazard_id:
-        return
-    res = supabase.table("hazards").update(fields).eq("id", hazard_id).execute()
-    if getattr(res, "error", None):
-        raise RuntimeError(str(res.error))
-
-
-def ask_first_photo_prompt(reply_token: str) -> None:
+def ask_step_photo(reply_token: str) -> None:
     send_line_message(
         reply_token,
-        "คุณสามารถแจ้งเหตุที่พบ ใน มทรกรุงเทพได้เลยครับ สามารถส่งรูปเข้ามาได้เลยครับ",
-        quick_items=photo_choice_quick_reply(),
+        "คุณสามารถแจ้งเหตุที่พบ ใน มทร.กรุงเทพ ได้เลยครับ\nสามารถส่งรูปภาพเข้ามา หรือเลือก \"ไม่แนบรูป\" ได้ด้านล่างครับ",
+        quick_items=qr_photo(),
     )
 
 
-def ask_next_step_prompt(reply_token: str, prefix: str = "") -> None:
-    body = (
-        f"{prefix}\n" if prefix else ""
-    ) + "กรุณาส่งตำแหน่งที่ตั้ง (Location) และเลือกเรื่องที่จะแจ้งครับ (หรือพิมพ์รายละเอียดเพิ่มเติมได้เลย)"
-    send_line_message(reply_token, body, quick_items=category_quick_reply())
+def ask_step_category(reply_token: str, prefix: str = "") -> None:
+    msg = (f"{prefix}\n" if prefix else "") + "ขั้นต่อไป: กรุณาเลือกเรื่อง/เหตุการณ์ที่ต้องการแจ้งครับ 👇"
+    send_line_message(reply_token, msg, quick_items=qr_category())
+
+
+def ask_step_location(reply_token: str, cat_label: str) -> None:
+    send_line_message(
+        reply_token,
+        f"เลือกเรื่อง \"{cat_label}\" เรียบร้อยครับ\nขั้นสุดท้าย: กดปุ่ม \"📍 ปักหมุดตำแหน่ง\" ด้านล่างเพื่อส่งจุดเกิดเหตุ (หรือพิมพ์รายละเอียดเพิ่มเติมก่อนปักหมุดได้เลยครับ)",
+        quick_items=qr_location(),
+    )
 
 
 def process_event(event: dict) -> None:
@@ -259,120 +258,116 @@ def process_event(event: dict) -> None:
     sess = get_session(user_id)
 
     if sess.get("step") == "done":
-        sessions[user_id] = {
-            "step": "intro_photo",
-            "category": "other",
-            "description": "",
-            "lat": None,
-            "lng": None,
-            "image_url": None,
-            "created_id": None,
-        }
+        sessions[user_id] = new_session()
         sess = sessions[user_id]
-        ask_first_photo_prompt(reply_token)
-        return
 
-    # 1) ผู้ใช้ส่งรูปภาพ
-    if msg_type == "image":
-        try:
-            image_url = upload_line_image_to_r2(msg.get("id", ""))
-            sess["image_url"] = image_url
-            if sess.get("created_id"):
-                update_hazard_fields(sess["created_id"], {"image_url": image_url})
-            sess["step"] = "waiting_details"
-            ask_next_step_prompt(reply_token, "รับรูปภาพเรียบร้อยแล้วครับ")
-        except Exception as exc:
-            print("[R2 upload error]:", exc)
-            sess["step"] = "waiting_details"
-            ask_next_step_prompt(
-                reply_token,
-                "อัปโหลดรูปไม่สำเร็จ แต่ดำเนินการแจ้งเหตุต่อได้ตามปกติครับ",
-            )
-        return
-
-    # 2) ผู้ใช้ส่งตำแหน่งที่ตั้ง (Location) -> บันทึกลงหมุดและแจ้งรหัส
-    if msg_type == "location":
-        sess["lat"] = msg.get("latitude", DEFAULT_LAT)
-        sess["lng"] = msg.get("longitude", DEFAULT_LNG)
-        addr = (msg.get("address") or "").strip()
-        if addr and not sess.get("description"):
-            sess["description"] = addr
-
-        try:
-            if not sess.get("created_id"):
-                hazard_id = insert_hazard(sess)
-                sess["created_id"] = hazard_id
-            else:
-                hazard_id = sess["created_id"]
-                update_hazard_fields(
-                    hazard_id,
-                    {
-                        "lat": float(sess["lat"]),
-                        "lng": float(sess["lng"]),
-                        "description": sess.get("description") or CATEGORY_THAI_LABEL.get(sess["category"], "แจ้งจุดเสี่ยง"),
-                        "image_url": sess.get("image_url"),
-                    },
-                )
-            cat_label = CATEGORY_THAI_LABEL.get(sess["category"], "อื่นๆ")
-            send_line_message(
-                reply_token,
-                f"ปักหมุดจุดเสี่ยงใหม่ รหัส {hazard_id} ลงแผนที่เรียบร้อยแล้วครับ ✅\nหมวดหมู่: {cat_label}\nสามารถเลือกหมวดหมู่หรือพิมพ์รายละเอียดเพิ่มเติมได้เลยครับ",
-                quick_items=category_quick_reply(),
-            )
-        except Exception as exc:
-            print("[Supabase save error]:", exc)
-            send_line_message(reply_token, f"บันทึกลงระบบไม่สำเร็จ: {exc}")
-        return
-
-    # 3) ผู้ใช้ส่งข้อความ
     if msg_type == "text":
-        text = (msg.get("text") or "").strip()
-        lower = text.lower()
+        raw_text = (msg.get("text") or "").strip()
+        if raw_text in ("เริ่มใหม่", "ยกเลิก", "เริ่มแจ้งเหตุ", "แจ้งเหตุ"):
+            sessions[user_id] = new_session()
+            ask_step_photo(reply_token)
+            return
 
-        if sess.get("step") == "intro_photo":
+    step = sess.get("step")
+
+    # ==========================================
+    # ขั้นที่ 1: รอรูปภาพ หรือ ไม่แนบรูป -> ไปขั้นเลือกเหตุการณ์
+    # ==========================================
+    if step == "step_photo":
+        if msg_type == "image":
+            try:
+                image_url = upload_line_image_to_r2(msg.get("id", ""))
+                sess["image_url"] = image_url
+                sess["step"] = "step_category"
+                ask_step_category(reply_token, "บันทึกรูปภาพเรียบร้อยแล้วครับ ✅")
+            except Exception as exc:
+                print("[R2 upload error]:", exc)
+                sess["image_url"] = None
+                sess["step"] = "step_category"
+                ask_step_category(reply_token, "รับทราบครับ (ข้ามการแนบรูป)")
+            return
+
+        if msg_type == "text":
+            text = (msg.get("text") or "").strip()
             if text in ("ไม่แนบรูป", "ข้าม", "ไม่ส่งรูป"):
                 sess["image_url"] = None
-                sess["step"] = "waiting_details"
-                ask_next_step_prompt(reply_token, "รับทราบครับ ไม่แนบรูปภาพ")
+                sess["step"] = "step_category"
+                ask_step_category(reply_token, "รับทราบครับ ไม่แนบรูปภาพ")
                 return
+
+        ask_step_photo(reply_token)
+        return
+
+    # ==========================================
+    # ขั้นที่ 2: รอเลือกเหตุการณ์ -> ไปขั้นปักหมุด Location
+    # ==========================================
+    if step == "step_category":
+        if msg_type == "text":
+            text = (msg.get("text") or "").strip()
+            lower = text.lower()
             if lower in CATEGORY_MAP:
-                sess["category"] = CATEGORY_MAP[lower]
-                sess["step"] = "waiting_details"
-                ask_next_step_prompt(reply_token, f"เลือกเรื่อง \"{text}\" แล้วครับ")
-                return
-            if text in ("เริ่มแจ้ง", "แจ้งเหตุ", "สวัสดี", "เมนู"):
-                ask_first_photo_prompt(reply_token)
+                cat_key = CATEGORY_MAP[lower]
+                sess["category"] = cat_key
+                sess["step"] = "step_location"
+                ask_step_location(reply_token, CATEGORY_THAI_LABEL[cat_key])
                 return
 
-            ask_first_photo_prompt(reply_token)
+        send_line_message(
+            reply_token,
+            "กรุณากดเลือกประเภทเหตุการณ์จากปุ่มด้านล่างก่อนครับ 👇",
+            quick_items=qr_category(),
+        )
+        return
+
+    # ==========================================
+    # ขั้นที่ 3: รอปักหมุด Location -> บันทึก & ขึ้นขอบคุณ + รหัส RMUTK-XXXXXX
+    # ==========================================
+    if step == "step_location":
+        if msg_type == "location":
+            sess["lat"] = msg.get("latitude", DEFAULT_LAT)
+            sess["lng"] = msg.get("longitude", DEFAULT_LNG)
+            addr = (msg.get("address") or "").strip()
+            if addr and not sess.get("description"):
+                sess["description"] = addr
+
+            try:
+                hazard_id = insert_hazard(sess)
+                cat_label = CATEGORY_THAI_LABEL.get(sess.get("category") or "other", "อื่นๆ")
+                sess["step"] = "done"
+                send_line_message(
+                    reply_token,
+                    f"ขอบคุณที่ร่วมแจ้งเหตุเพื่อความปลอดภัยใน มทร.กรุงเทพ ครับ 🙏✅\n\n"
+                    f"รหัสแจ้งเหตุ: {hazard_id}\n"
+                    f"เรื่องที่แจ้ง: {cat_label}\n"
+                    f"พิกัด: {float(sess['lat']):.5f}, {float(sess['lng']):.5f}\n\n"
+                    f"ระบบได้ปักหมุดลงแผนที่เรียบร้อยแล้วครับ",
+                    quick_items=qr_restart(),
+                )
+            except Exception as exc:
+                print("[Supabase save error]:", exc)
+                send_line_message(
+                    reply_token,
+                    f"บันทึกข้อมูลไม่สำเร็จ: {exc}\nกรุณาลองกดปักหมุดอีกครั้งครับ",
+                    quick_items=qr_location(),
+                )
             return
 
-        if lower in CATEGORY_MAP:
-            sess["category"] = CATEGORY_MAP[lower]
-            if sess.get("created_id"):
-                try:
-                    update_hazard_fields(sess["created_id"], {"category": sess["category"]})
-                except Exception as exc:
-                    print("[Supabase category update error]:", exc)
-            send_line_message(
-                reply_token,
-                f"บันทึกเรื่อง \"{CATEGORY_THAI_LABEL[sess['category']]}\" แล้วครับ\nหากยังไม่ได้ส่งตำแหน่ง สามารถส่ง Location มาได้เลยครับ",
-                quick_items=category_quick_reply(),
-            )
-            return
+        if msg_type == "text":
+            detail = (msg.get("text") or "").strip()
+            if detail:
+                sess["description"] = detail
+                send_line_message(
+                    reply_token,
+                    f"บันทึกรายละเอียด \"{detail}\" แล้วครับ\nต่อไปกดปุ่ม \"📍 ปักหมุดตำแหน่ง\" ด้านล่างเพื่อส่งพิกัดและจบการแจ้งเหตุได้เลยครับ 👇",
+                    quick_items=qr_location(),
+                )
+                return
 
-        if text:
-            sess["description"] = text
-            if sess.get("created_id"):
-                try:
-                    update_hazard_fields(sess["created_id"], {"description": text})
-                except Exception as exc:
-                    print("[Supabase description update error]:", exc)
-            send_line_message(
-                reply_token,
-                "บันทึกรายละเอียดเพิ่มเติมเรียบร้อยแล้วครับ ✅",
-                quick_items=category_quick_reply(),
-            )
+        send_line_message(
+            reply_token,
+            "กรุณากดปุ่ม \"📍 ปักหมุดตำแหน่ง\" ด้านล่างเพื่อปักหมุดจุดเกิดเหตุครับ 👇",
+            quick_items=qr_location(),
+        )
 
 
 @app.get("/")
