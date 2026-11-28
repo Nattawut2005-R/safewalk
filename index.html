@@ -2,449 +2,290 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#14532d" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RMUTK SafeWalk — แผนที่ทางเดินปลอดภัย มทร.กรุงเทพ</title>
-
-  <link rel="icon" href="data:," />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  />
   <style>
     :root {
-      --rmutk-green-dark: #14532d;
-      --rmutk-green: #15803d;
-      --rmutk-green-bright: #22c55e;
-      --rmutk-green-soft: #dcfce7;
-
-      /* โหมดกลางคืน */
-      --bg-app: #0b1120;
-      --bg-card: #111827;
-      --bg-subtle: #0f172a;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --border-soft: #1e293b;
-      --map-filter: invert(1) hue-rotate(180deg) brightness(0.62) contrast(1.12) saturate(0.75);
-
-      --danger: #ef4444;
-      --danger-soft: rgba(239, 68, 68, 0.18);
-      --warning: #f59e0b;
-      --warning-soft: rgba(245, 158, 11, 0.18);
-      --info: #3b82f6;
-      --info-soft: rgba(59, 130, 246, 0.18);
-      --other: #8b5cf6;
-      --other-soft: rgba(139, 92, 246, 0.18);
-      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
-      --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.45);
-      --radius-md: 12px;
+      --bg: #f3f7f4;
+      --surface: #ffffff;
+      --surface-2: #eef5f0;
+      --text: #132219;
+      --muted: #5b6d62;
+      --primary: #15803d;
+      --primary-soft: #dcfce7;
+      --danger: #dc2626;
+      --danger-soft: #fee2e2;
+      --border: #cde0d3;
+      --shadow: 0 6px 18px rgba(19, 34, 25, 0.06);
     }
 
-    /* โหมดกลางวัน */
-    body.day-mode {
-      --bg-app: #f8fafc;
-      --bg-card: #ffffff;
-      --bg-subtle: #f0fdf4;
-      --text-main: #0f172a;
-      --text-muted: #475569;
-      --border-soft: #cbd5e1;
-      --map-filter: saturate(1.05) brightness(1.03) contrast(1.02);
+    body.dark-mode {
+      --bg: #0e1612;
+      --surface: #17231d;
+      --surface-2: #1f2f27;
+      --text: #e8f3ec;
+      --muted: #9bb3a5;
+      --primary: #22c55e;
+      --primary-soft: rgba(34, 197, 94, 0.15);
+      --danger: #f87171;
+      --danger-soft: rgba(248, 113, 113, 0.15);
+      --border: #2a3e33;
+      --shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
     }
 
     * {
       box-sizing: border-box;
-      margin: 0;
-      padding: 0;
       -webkit-tap-highlight-color: transparent;
     }
 
-    html,
     body {
-      height: 100%;
-      font-family: 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
-      background-color: var(--bg-app);
-      color: var(--text-main);
-      overflow: hidden;
-      transition: background-color 0.2s ease, color 0.2s ease;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
     }
 
-    .app-shell {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 12px 14px 48px;
     }
 
-    /* ปุ่มกดทั้งหมด: ปุ่มสีขาว โค้งมน และมีกรอบ */
-    .pill-btn {
-      background: #ffffff;
-      color: #0f172a;
-      border: 1.5px solid var(--rmutk-green);
-      border-radius: 999px;
-      font-family: 'Prompt', sans-serif;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
-      transition: transform 0.12s ease, background-color 0.15s ease, border-color 0.15s ease;
-    }
-
-    .pill-btn:active {
-      transform: scale(0.96);
-    }
-
-    .pill-btn.active {
-      background: #ffffff;
-      color: var(--rmutk-green-dark);
-      border: 2px solid var(--rmutk-green-bright);
-      box-shadow: 0 3px 10px rgba(34, 197, 94, 0.28);
-    }
-
-    /* แถบบนกะทัดรัด */
-    .top-header {
-      background: var(--bg-card);
-      border-bottom: 2px solid var(--rmutk-green);
-      box-shadow: var(--shadow-sm);
-      z-index: 1000;
-      flex-shrink: 0;
-    }
-
-    .header-main {
+    .header-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      padding: 12px 14px;
+      box-shadow: var(--shadow);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      padding: 6px 10px;
+      gap: 10px;
+      margin-bottom: 10px;
     }
 
-    .brand-box {
+    .brand-left {
       display: flex;
       align-items: center;
-      gap: 8px;
-      background: #ffffff;
-      color: #0f172a;
-      border: 1.5px solid var(--rmutk-green);
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
       border-radius: 12px;
-      padding: 4px 10px;
-      min-width: 0;
-    }
-
-    .brand-badge-icon {
-      width: 24px;
-      height: 24px;
-      border-radius: 999px;
-      background: var(--rmutk-green-soft);
-      color: var(--rmutk-green-dark);
-      border: 1.5px solid var(--rmutk-green);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.78rem;
-      font-weight: 700;
-      flex-shrink: 0;
+      background: var(--primary-soft);
+      color: var(--primary);
+      border: 1.5px solid var(--primary);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 18px;
     }
 
     .brand-title {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: #0f172a;
-      line-height: 1.15;
-      white-space: nowrap;
+      font-weight: 800;
+      font-size: 15px;
     }
 
     .brand-sub {
-      font-size: 0.64rem;
-      color: #475569;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .pill-btn {
+      background: var(--surface);
+      color: var(--text);
+      border: 1.5px solid var(--primary);
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       white-space: nowrap;
     }
 
-    .btn-day {
-      min-height: 34px;
-      padding: 4px 11px;
-      font-size: 0.72rem;
-      flex-shrink: 0;
-    }
-
-    /* แถบ 3 ช่องด้านบนซ้าย ขนาดเล็กลงกะทัดรัด */
-    .tab-bar-wrap {
-      padding: 5px 10px 7px 10px;
-      background: var(--bg-subtle);
+    .pill-btn.active {
+      background: var(--primary);
+      color: #ffffff;
     }
 
     .nav-tabs {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      max-width: 560px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
     }
 
     .nav-tab {
-      flex: 1;
-      min-height: 34px;
-      padding: 4px 8px;
-      font-size: 0.7rem;
-      line-height: 1.1;
-      white-space: nowrap;
+      background: var(--surface);
+      color: var(--text);
+      border: 1.5px solid var(--primary);
+      border-radius: 999px;
+      padding: 9px 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
 
-    .tab-badge {
-      background: #fee2e2;
-      color: #dc2626;
-      border: 1px solid #fca5a5;
+    .nav-tab.active {
+      background: var(--primary-soft);
+      box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.18);
+    }
+
+    .count-badge {
+      background: #ef4444;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 1px 6px;
       border-radius: 999px;
-      padding: 0 5px;
-      font-size: 0.64rem;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .summary-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      transition: transform 0.12s ease, border-color 0.12s ease;
+      text-align: left;
+    }
+
+    .summary-card:active {
+      transform: scale(0.99);
+    }
+
+    .summary-card.selected {
+      border-width: 2px;
+      border-color: var(--primary);
+      background: var(--surface-2);
+    }
+
+    .summary-num {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .summary-num.danger {
+      color: var(--danger);
+    }
+
+    .summary-num.success {
+      color: var(--primary);
+    }
+
+    .summary-label {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .filter-scroll {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 12px;
+      scrollbar-width: none;
+    }
+
+    .filter-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .cat-chip {
+      background: var(--surface);
+      color: var(--text);
+      border: 1.5px solid var(--primary);
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .cat-chip.active {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    /* ซ่อนปุ่มตัวกรอง "แก้ไขแล้ว" ในแถบหมวดหมู่แนวนอน */
+    .filter-scroll [data-category="resolved"],
+    .filter-scroll .filter-resolved-btn {
+      display: none !important;
+    }
+
+    .active-filter-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      font-size: 13px;
       font-weight: 700;
     }
 
-    /* พื้นที่เนื้อหา */
-    .content-area {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
+    .active-filter-banner.show {
+      display: flex;
     }
 
-    .view-panel {
-      display: none;
-      width: 100%;
-      height: 100%;
-      overflow-y: auto;
-    }
-
-    .view-panel.active {
-      display: block;
-    }
-
-    #view-map {
-      position: relative;
-      overflow: hidden;
+    .reset-link-btn {
+      background: var(--surface);
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
     }
 
     #map {
       width: 100%;
-      height: 100%;
+      height: 430px;
+      border-radius: 18px;
+      border: 1.5px solid var(--border);
+      box-shadow: var(--shadow);
       z-index: 1;
     }
 
-    .leaflet-tile-pane {
-      filter: var(--map-filter);
-      transition: filter 0.25s ease;
-    }
-
-    /* ปุ่มควบคุมแผนที่ด้านขวาล่าง */
-    .map-controls {
-      position: absolute;
-      bottom: 16px;
-      right: 12px;
-      z-index: 850;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .map-fab {
-      width: 42px;
-      height: 42px;
-      padding: 0;
-      font-size: 1rem;
-    }
-
-    /* กล่องสัญลักษณ์พับ/กางได้มุมซ้ายล่าง */
-    .legend-box {
-      position: absolute;
-      bottom: 16px;
-      left: 12px;
-      z-index: 850;
-      max-width: calc(100vw - 76px);
-    }
-
-    .legend-toggle-btn {
-      min-height: 34px;
-      padding: 5px 11px;
-      font-size: 0.72rem;
-    }
-
-    .legend-card {
-      display: none;
-      margin-top: 6px;
-      background: var(--bg-card);
-      color: var(--text-main);
-      border: 1.5px solid var(--rmutk-green);
-      border-radius: var(--radius-md);
-      padding: 10px 12px;
-      box-shadow: var(--shadow-md);
-      font-size: 0.72rem;
-      max-width: 250px;
-    }
-
-    .legend-box.open .legend-card {
-      display: block;
-    }
-
-    .legend-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
-    .legend-row:last-child {
-      margin-bottom: 0;
-    }
-
-    .legend-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      border: 1.5px solid #ffffff;
-      flex-shrink: 0;
-    }
-
-    /* หมุดบนแผนที่ */
-    .pin-marker {
-      position: relative;
-      width: 24px;
-      height: 24px;
-      border-radius: 50% 50% 50% 0;
-      transform: rotate(-45deg);
-      border: 2px solid #ffffff;
-      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .pin-marker::after {
-      content: '';
-      position: absolute;
-      top: -10px;
-      left: -10px;
-      right: -10px;
-      bottom: -10px;
-      border-radius: 50%;
-    }
-
-    .pin-marker span {
-      transform: rotate(45deg);
-      font-size: 11px;
-      line-height: 1;
-    }
-
-    .pin-smoke { background: #ef4444; }
-    .pin-dark  { background: #f59e0b; }
-    .pin-block { background: #3b82f6; }
-    .pin-other { background: #8b5cf6; }
-    .pin-done  { background: #22c55e; }
-
-    .user-blue-dot {
-      width: 14px;
-      height: 14px;
-      background: #3b82f6;
-      border: 2.5px solid #ffffff;
-      border-radius: 50%;
-      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
-    }
-
-    /* รายการแจ้งเหตุและคู่มือ */
-    .feed-container,
-    .guide-container {
-      max-width: 740px;
-      margin: 0 auto;
-      padding: 12px 12px 32px 12px;
-    }
-
-    .summary-strip {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-
-    .summary-box {
-      background: var(--bg-card);
-      border: 1px solid var(--border-soft);
-      border-bottom: 3px solid var(--rmutk-green);
-      border-radius: var(--radius-md);
-      padding: 10px 12px;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .summary-num {
-      font-size: 1.2rem;
-      font-weight: 700;
-    }
-
-    .summary-label {
-      font-size: 0.72rem;
-      color: var(--text-muted);
-    }
-
-    .filter-row {
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      padding-bottom: 6px;
-      margin-bottom: 10px;
-    }
-
-    .filter-chip {
-      min-height: 34px;
-      padding: 5px 12px;
-      font-size: 0.72rem;
-      white-space: nowrap;
-    }
-
-    .hazard-card,
-    .guide-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-md);
-      padding: 12px;
-      margin-bottom: 10px;
-      box-shadow: var(--shadow-sm);
-    }
-
     .hazard-card {
-      border-left: 4px solid var(--info);
-    }
-
-    .hazard-card.smoke { border-left-color: var(--danger); }
-    .hazard-card.dark  { border-left-color: var(--warning); }
-    .hazard-card.block { border-left-color: var(--info); }
-    .hazard-card.other { border-left-color: var(--other); }
-    .hazard-card.resolved { border-left-color: var(--rmutk-green-bright); opacity: 0.92; }
-
-    .hazard-card.highlighted {
-      border: 2px solid var(--rmutk-green-bright);
-      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
-    }
-
-    .guide-card {
-      border-top: 3px solid var(--rmutk-green);
-    }
-
-    .campus-banner {
-      background: linear-gradient(135deg, #14532d 0%, #15803d 100%);
-      color: #ffffff;
-      border-radius: var(--radius-md);
-      padding: 14px;
+      background: var(--surface);
+      border: 1.5px solid var(--primary);
+      border-radius: 18px;
+      padding: 14px 16px;
       margin-bottom: 12px;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .campus-banner-title {
-      font-size: 0.95rem;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
-    .campus-banner-sub {
-      font-size: 0.76rem;
-      color: #dcfce7;
-      line-height: 1.45;
+      box-shadow: var(--shadow);
     }
 
     .card-top {
@@ -455,845 +296,540 @@
       margin-bottom: 6px;
     }
 
-    .card-title,
-    .guide-heading {
-      font-size: 0.86rem;
-      font-weight: 700;
-      margin-bottom: 4px;
+    .card-title {
+      font-size: 16px;
+      font-weight: 800;
     }
 
-    .badge {
-      font-size: 0.66rem;
+    .status-tag {
+      font-size: 12px;
       font-weight: 700;
-      padding: 2px 8px;
+      padding: 3px 10px;
       border-radius: 999px;
       white-space: nowrap;
     }
 
-    .badge-smoke { background: var(--danger-soft); color: var(--danger); }
-    .badge-dark  { background: var(--warning-soft); color: var(--warning); }
-    .badge-block { background: var(--info-soft); color: var(--info); }
-    .badge-other { background: var(--other-soft); color: var(--other); }
-    .badge-done  { background: var(--rmutk-green-soft); color: #166534; }
-
-    .card-desc {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      line-height: 1.45;
-      margin-bottom: 8px;
+    .status-tag.resolved {
+      background: var(--primary-soft);
+      color: var(--primary);
     }
 
-    .card-img {
-      width: 100%;
-      max-height: 175px;
-      object-fit: cover;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      border: 1px solid var(--border-soft);
+    .status-tag.unresolved {
+      background: #fef3c7;
+      color: #92400e;
     }
 
     .card-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
       display: flex;
       justify-content: space-between;
+      gap: 8px;
       flex-wrap: wrap;
-      gap: 6px;
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      margin-bottom: 8px;
+    }
+
+    .vote-status-note {
+      font-size: 12px;
+      color: var(--primary);
+      font-weight: 700;
+      margin-top: 8px;
     }
 
     .card-actions {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
       flex-wrap: wrap;
-      padding-top: 8px;
-      border-top: 1px dashed var(--border-soft);
-    }
-
-    .btn-action {
-      min-height: 34px;
-      padding: 5px 11px;
-      font-size: 0.72rem;
-    }
-
-    .guide-list {
-      padding-left: 18px;
-      font-size: 0.78rem;
-      line-height: 1.6;
-      color: var(--text-muted);
-    }
-
-    .guide-list strong {
-      color: var(--text-main);
-    }
-
-    .line-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      min-height: 38px;
-      padding: 7px 14px;
-      border-radius: 999px;
-      background: #ffffff;
-      color: #14532d;
-      border: 1.5px solid #15803d;
-      text-decoration: none;
-      font-size: 0.78rem;
-      font-weight: 700;
-      margin-top: 4px;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
-    }
-
-    /* กล่องเทสแจ้งเหตุชั่วคราวในหน้าคู่มือ */
-    .test-box-body {
-      display: none;
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px dashed var(--border-soft);
-    }
-
-    .test-box.open .test-box-body {
-      display: block;
-    }
-
-    .test-field {
-      margin-bottom: 8px;
-    }
-
-    .test-label {
-      display: block;
-      font-size: 0.72rem;
-      font-weight: 600;
-      margin-bottom: 4px;
-      color: var(--text-main);
-    }
-
-    .test-input,
-    .test-select {
-      width: 100%;
-      min-height: 36px;
-      padding: 6px 10px;
-      border-radius: 10px;
-      border: 1.5px solid var(--border-soft);
-      background: var(--bg-subtle);
-      color: var(--text-main);
-      font-family: 'Prompt', sans-serif;
-      font-size: 0.76rem;
-    }
-
-    .test-coords-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
       gap: 8px;
+      margin-top: 12px;
     }
 
-    .test-status-msg {
-      margin-top: 6px;
-      font-size: 0.72rem;
-      color: var(--rmutk-green-bright);
+    .action-btn {
+      background: var(--surface);
+      color: var(--primary);
+      border: 1.5px solid var(--primary);
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
     }
 
-    .empty-box {
-      background: var(--bg-card);
-      border: 1px dashed var(--border-soft);
-      border-radius: var(--radius-md);
-      padding: 22px 12px;
-      text-align: center;
-      font-size: 0.8rem;
-      color: var(--text-muted);
+    .action-btn.picked {
+      background: var(--primary);
+      color: #ffffff;
     }
 
-    @media (min-width: 768px) {
-      .brand-title { font-size: 0.96rem; }
-      .nav-tab { font-size: 0.78rem; padding: 6px 10px; }
-      .pin-marker { width: 28px; height: 28px; }
-      .pin-marker span { font-size: 13px; }
+    .action-btn:disabled {
+      opacity: 0.65;
+      cursor: default;
+    }
+
+    .hidden {
+      display: none !important;
     }
   </style>
 </head>
 <body>
-  <div class="app-shell">
-    <!-- แถบบนกะทัดรัด + 3 แท็บด้านบนซ้าย -->
-    <header class="top-header">
-      <div class="header-main">
-        <div class="brand-box">
-          <div class="brand-badge-icon">R</div>
-          <div>
-            <div class="brand-title">RMUTK SafeWalk</div>
-            <div class="brand-sub">มทร.กรุงเทพ • โหมดติดตามสถานะ</div>
-          </div>
+  <div class="container">
+    <div class="header-card">
+      <div class="brand-left">
+        <div class="brand-logo">R</div>
+        <div>
+          <div class="brand-title">RMUTK SafeWalk</div>
+          <div class="brand-sub">มทร.กรุงเทพ · โหมดติดตามสถานะ</div>
         </div>
-
-        <button id="dayModeBtn" class="pill-btn btn-day" type="button" aria-pressed="false">
-          <span id="dayModeIcon">☀️</span>
-          <span id="dayModeLabel">โหมดกลางวัน</span>
-        </button>
       </div>
+      <button id="themeToggleBtn" class="pill-btn" type="button">🌙 โหมดกลางคืน</button>
+    </div>
 
-      <div class="tab-bar-wrap">
-        <nav class="nav-tabs" role="tablist" aria-label="เมนูหลัก">
-          <button id="tab-map" class="pill-btn nav-tab active" type="button" role="tab" aria-selected="true" onclick="switchTab('map')">
-            <span>🗺️</span>
-            <span>แผนที่</span>
-          </button>
+    <div class="nav-tabs">
+      <button id="tabMapBtn" class="nav-tab active" type="button">🗺️ แผนที่</button>
+      <button id="tabListBtn" class="nav-tab" type="button">
+        📋 เรื่องที่คนแจ้งเข้ามา <span id="activeCountBadge" class="count-badge">0</span>
+      </button>
+      <button id="tabGuideBtn" class="nav-tab" type="button">📖 คู่มือใช้เว็บ</button>
+    </div>
 
-          <button id="tab-reports" class="pill-btn nav-tab" type="button" role="tab" aria-selected="false" onclick="switchTab('reports')">
-            <span>📋</span>
-            <span>เรื่องที่คนแจ้งเข้ามา</span>
-            <span id="activeCountBadge" class="tab-badge">0</span>
-          </button>
+    <div class="summary-grid">
+      <button id="cardActiveStatus" class="summary-card" type="button">
+        <div id="statActiveNum" class="summary-num danger">0</div>
+        <div class="summary-label">กำลังดำเนินการ</div>
+      </button>
+      <button id="cardResolvedStatus" class="summary-card" type="button">
+        <div id="statResolvedNum" class="summary-num success">0</div>
+        <div class="summary-label">แก้ไขแล้ว</div>
+      </button>
+    </div>
 
-          <button id="tab-guide" class="pill-btn nav-tab" type="button" role="tab" aria-selected="false" onclick="switchTab('guide')">
-            <span>📖</span>
-            <span>คู่มือใช้เว็บ</span>
-          </button>
-        </nav>
+    <div id="categoryFilterBar" class="filter-scroll">
+      <button class="cat-chip active" data-category="all" type="button">ทั้งหมด</button>
+      <button class="cat-chip" data-category="smoke" type="button">🚬 ควันบุหรี่</button>
+      <button class="cat-chip" data-category="dark" type="button">💡 ไฟทางดับ</button>
+      <button class="cat-chip" data-category="block" type="button">🚧 กีดขวาง</button>
+      <button class="cat-chip" data-category="other" type="button">⚠️ อื่นๆ</button>
+    </div>
+
+    <div id="activeFilterBanner" class="active-filter-banner">
+      <span id="activeFilterLabel">กำลังกรอง: ทั้งหมด</span>
+      <button id="resetFilterBtn" class="reset-link-btn" type="button">แสดงทั้งหมด</button>
+    </div>
+
+    <section id="mapSection">
+      <div id="map"></div>
+    </section>
+
+    <section id="listSection" class="hidden">
+      <div id="hazardListContainer"></div>
+    </section>
+
+    <section id="guideSection" class="hidden">
+      <div class="hazard-card">
+        <div class="card-title">กติกาการติดตามและโหวตสถานะจุดเสี่ยง</div>
+        <p style="margin:8px 0 0;font-size:13px;color:var(--muted);">
+          • เลือกโหวตได้ 1 ครั้งต่อรายการ (ยังไม่แก้ไข หรือ แก้ไขแล้ว) โดยปุ่มยังคงแสดงผลตามปกติ<br/>
+          • หากไม่มีคนกดโหวตเลย รายการจะอยู่บนหน้าเว็บ 15 นาที<br/>
+          • เมื่อมีคนเริ่มโหวต ระบบจะรอดูผล 30 นาที แล้วเทียบคะแนน<br/>
+          • หาก "แก้ไขแล้ว" ชนะ ให้อยู่ต่อ 20 นาที / หาก "ยังไม่แก้ไข" เยอะกว่า ให้อยู่ตลอดไป
+        </p>
       </div>
-    </header>
-
-    <main class="content-area">
-      <!-- ช่อง 1: แผนที่เต็มๆ โฟกัสพื้นที่ มทร.กรุงเทพ -->
-      <section id="view-map" class="view-panel active" role="tabpanel" aria-labelledby="tab-map">
-        <div id="map"></div>
-
-        <div id="legendBox" class="legend-box">
-          <button id="legendToggleBtn" class="pill-btn legend-toggle-btn" type="button" aria-expanded="false">
-            <span>🏷️</span>
-            <span>สัญลักษณ์</span>
-          </button>
-          <div id="legendCard" class="legend-card">
-            <div class="legend-row">
-              <span class="legend-dot" style="background:#3b82f6;"></span>
-              <span>ตำแหน่ง GPS ของคุณ</span>
-            </div>
-            <div class="legend-row">
-              <span class="legend-dot" style="background:#ef4444;"></span>
-              <span>ควันบุหรี่ / IoT / แจ้งซ้ำ (≤ 25 ม.)</span>
-            </div>
-            <div class="legend-row">
-              <span class="legend-dot" style="background:#f59e0b;"></span>
-              <span>ไฟทางดับ / จุดมืด</span>
-            </div>
-            <div class="legend-row">
-              <span class="legend-dot" style="background:#3b82f6;"></span>
-              <span>ปิดถนน / กีดขวางทางเดิน</span>
-            </div>
-            <div class="legend-row">
-              <span class="legend-dot" style="background:#8b5cf6;"></span>
-              <span>อื่นๆ</span>
-            </div>
-            <div class="legend-row">
-              <span class="legend-dot" style="background:#22c55e;"></span>
-              <span>แก้ไขแล้ว (อยู่บนแผนที่ 10 นาที)</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="map-controls">
-          <button id="centerRmutkBtn" class="pill-btn map-fab" type="button" title="กลับจุดศูนย์กลาง มทร.กรุงเทพ">🏫</button>
-          <button id="locateMeBtn" class="pill-btn map-fab" type="button" title="ตำแหน่งปัจจุบัน (GPS)">🎯</button>
-        </div>
-      </section>
-
-      <!-- ช่อง 2: เรื่องที่คนแจ้งเข้ามา (เรียงล่าสุดอยู่บนสุด) -->
-      <section id="view-reports" class="view-panel" role="tabpanel" aria-labelledby="tab-reports">
-        <div class="feed-container">
-          <div class="summary-strip">
-            <div class="summary-box">
-              <div id="statActive" class="summary-num" style="color: var(--danger);">0</div>
-              <div class="summary-label">กำลังดำเนินการ</div>
-            </div>
-            <div class="summary-box">
-              <div id="statResolved" class="summary-num" style="color: var(--rmutk-green-bright);">0</div>
-              <div class="summary-label">แก้ไขแล้ว</div>
-            </div>
-          </div>
-
-          <div class="filter-row">
-            <button class="pill-btn filter-chip active" data-filter="all" type="button" onclick="setFilter('all')">ทั้งหมด</button>
-            <button class="pill-btn filter-chip" data-filter="smoke" type="button" onclick="setFilter('smoke')">🚬 ควันบุหรี่</button>
-            <button class="pill-btn filter-chip" data-filter="dark" type="button" onclick="setFilter('dark')">💡 ไฟทางดับ</button>
-            <button class="pill-btn filter-chip" data-filter="block" type="button" onclick="setFilter('block')">🚧 กีดขวาง</button>
-            <button class="pill-btn filter-chip" data-filter="other" type="button" onclick="setFilter('other')">⚠️ อื่นๆ</button>
-            <button class="pill-btn filter-chip" data-filter="resolved" type="button" onclick="setFilter('resolved')">✅ แก้ไขแล้ว</button>
-          </div>
-
-          <div id="reportsList"></div>
-        </div>
-      </section>
-
-      <!-- ช่อง 3: คู่มือใช้เว็บ + กล่องเทสแจ้งเหตุชั่วคราว -->
-      <section id="view-guide" class="view-panel" role="tabpanel" aria-labelledby="tab-guide">
-        <div class="guide-container">
-          <div class="campus-banner">
-            <div class="campus-banner-title">🏛️ มทร.กรุงเทพ • SafeWalk Campus Guide</div>
-            <div class="campus-banner-sub">
-              ระบบติดตามจุดเสี่ยงและแจ้งเตือนการสูบบุหรี่ในพื้นที่ มทร.กรุงเทพ แจ้งเหตุผ่าน LINE และติดตามสถานะแบบเรียลไทม์บนหน้าเว็บ
-            </div>
-          </div>
-
-          <!-- กล่องเทสแจ้งเหตุชั่วคราว (พับ/กางได้) -->
-          <div id="testBox" class="guide-card test-box">
-            <div class="card-top" style="margin-bottom:0;">
-              <div class="guide-heading" style="margin-bottom:0;">🧪 โหมดเทสลองแจ้งเหตุ (ชั่วคราว)</div>
-              <button id="toggleTestBoxBtn" class="pill-btn btn-action" type="button">เปิดกล่องเทส</button>
-            </div>
-
-            <div class="test-box-body">
-              <div class="test-field">
-                <label class="test-label" for="testCategory">หมวดหมู่</label>
-                <select id="testCategory" class="test-select">
-                  <option value="smoke">🚬 สูบบุหรี่ในพื้นที่ห้ามสูบ</option>
-                  <option value="dark">💡 ไฟทางดับ / ทางเดินมืด</option>
-                  <option value="block">🚧 ขายของปิดถนน / ตั้งเต็นท์</option>
-                  <option value="other">⚠️ อื่นๆ</option>
-                </select>
-              </div>
-
-              <div class="test-coords-row">
-                <div class="test-field">
-                  <label class="test-label" for="testLat">ละติจูด (Lat)</label>
-                  <input id="testLat" class="test-input" type="number" step="any" value="13.7136" />
-                </div>
-                <div class="test-field">
-                  <label class="test-label" for="testLng">ลองจิจูด (Lng)</label>
-                  <input id="testLng" class="test-input" type="number" step="any" value="100.5385" />
-                </div>
-              </div>
-
-              <div class="test-field">
-                <label class="test-label" for="testDesc">รายละเอียดทดสอบ</label>
-                <input id="testDesc" class="test-input" type="text" placeholder="เช่น ทดสอบแจ้งเหตุหน้าอาคารเรียน" />
-              </div>
-
-              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                <button id="sendTestBtn" class="pill-btn btn-action" type="button">ส่งข้อมูลเทสลง Supabase</button>
-                <button id="randomRmutkSpotBtn" class="pill-btn btn-action" type="button">สุ่มจุดใน มทร.</button>
-              </div>
-              <div id="testStatusMsg" class="test-status-msg"></div>
-            </div>
-          </div>
-
-          <div class="guide-card">
-            <div class="guide-heading">💬 แอด LINE แจ้งเหตุ</div>
-            <p class="card-desc">
-              หน้าเว็บนี้ใช้ดูแผนที่และรายการที่แจ้งเข้ามาอย่างเดียว หากพบจุดเสี่ยงหรือควันบุหรี่ ให้ทักแจ้งผ่าน LINE OA ของระบบได้เลยครับ
-            </p>
-            <a class="line-btn" href="https://line.me/R/ti/p/@rmutk-safewalk" target="_blank" rel="noopener noreferrer">
-              <span>💚</span>
-              <span>แอด LINE แจ้งเหตุ</span>
-            </a>
-          </div>
-
-          <div class="guide-card">
-            <div class="guide-heading">📍 วิธีการแจ้งเหตุ</div>
-            <ol class="guide-list">
-              <li>แอด LINE แล้วเลือกหมวดหมู่ (ควันบุหรี่ / ไฟทางดับ / กีดขวาง / อื่นๆ)</li>
-              <li>ส่งตำแหน่ง GPS หรือระบุจุดในพื้นที่ มทร.กรุงเทพ พร้อมรูปถ่าย (ถ้ามี)</li>
-              <li>จุดที่อยู่ใกล้กันภายใน <strong>25 เมตร</strong> ในหมวดเดียวกันจะถูกรวมเป็นจุดเดียวให้อัตโนมัติ</li>
-            </ol>
-          </div>
-
-          <div class="guide-card">
-            <div class="guide-heading">🏷️ ความหมายหมุดและระยะเวลาที่อยู่บนแผนที่</div>
-            <ul class="guide-list">
-              <li><strong>หมุดแดง (🚬 / IoT / แจ้งซ้ำ):</strong> ควันบุหรี่ แจ้งเตือนจาก IoT หรือแจ้งซ้ำ — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว หรือครบ 10 นาที</strong></li>
-              <li><strong>หมุดส้ม (💡 ไฟทางดับ):</strong> ไฟทางดับหรือทางเดินมืด — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว หรือครบ 10 นาที</strong></li>
-              <li><strong>หมุดน้ำเงิน (🚧 กีดขวาง):</strong> ปิดถนนหรือกีดขวางทางเดิน — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว หรือครบ 10 นาที</strong></li>
-              <li><strong>หมุดม่วง (⚠️ อื่นๆ):</strong> เหตุการณ์อื่นๆ ในพื้นที่ — <strong>อยู่บนแผนที่จนกว่าจะกดแก้ไขแล้ว หรือครบ 10 นาที</strong></li>
-              <li><strong>หมุดเขียว (✅ แก้ไขแล้ว):</strong> <strong>แสดงบนแผนที่ต่ออีก 10 นาที</strong> แล้วหายจากแผนที่อัตโนมัติ</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-    </main>
+    </section>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./supabase-config.js"></script>
-
   <script>
-    const RMUTK_CENTER = [13.7136, 100.5385];
-    const MERGE_RADIUS_METERS = 25;
-    const RESOLVE_HIDE_MS = 10 * 60 * 1000;      // กดแก้ไขแล้ว -> อยู่ต่อ 10 นาทีแล้วหาย
-    const AUTO_EXPIRE_MS = 10 * 60 * 1000;       // ไม่มีใครกดอะไรเลย -> ครบ 10 นาทีแล้วซ่อนจากแผนที่
+    const SUPABASE_URL = "https://cysxdienifyupfunevfs.supabase.co";
+    // แทนที่ด้วย anon key ของโปรเจกต์ cysxdienifyupfunevfs
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 
-    // โฟกัสเฉพาะโซน มทร.กรุงเทพ
-    const RMUTK_BOUNDS = L.latLngBounds(
-      [13.7085, 100.5325],
-      [13.7185, 100.5445]
-    );
-
-    const CATEGORY_META = {
-      smoke: { label: 'สูบบุหรี่ในพื้นที่ห้ามสูบ', badgeClass: 'badge-smoke', pinClass: 'pin-smoke', circleColor: '#ef4444', icon: '🚬' },
-      dark:  { label: 'ไฟทางดับ / ทางเดินมืด',     badgeClass: 'badge-dark',  pinClass: 'pin-dark',  circleColor: '#f59e0b', icon: '💡' },
-      block: { label: 'ขายของปิดถนน / ตั้งเต็นท์',  badgeClass: 'badge-block', pinClass: 'pin-block', circleColor: '#3b82f6', icon: '🚧' },
-      other: { label: 'อื่นๆ',                      badgeClass: 'badge-other', pinClass: 'pin-other', circleColor: '#8b5cf6', icon: '⚠️' }
+    const CATEGORY_LABELS = {
+      smoke: "สูบบุหรี่ในพื้นที่ห้ามสูบ",
+      dark: "ไฟทางดับ / ทางเดินมืด",
+      block: "ขายของปิดถนน / ตั้งเต็นท์",
+      other: "อื่นๆ",
     };
 
-    let hazards = [];
-    let currentFilter = 'all';
-    let highlightedId = null;
+    const FIFTEEN_MIN_MS = 15 * 60 * 1000;
+    const THIRTY_MIN_MS = 30 * 60 * 1000;
+    const TWENTY_MIN_MS = 20 * 60 * 1000;
 
-    function switchTab(tabName) {
-      ['map', 'reports', 'guide'].forEach(function (name) {
-        const tabBtn = document.getElementById('tab-' + name);
-        const panelEl = document.getElementById('view-' + name);
-        const isTarget = name === tabName;
-        tabBtn.classList.toggle('active', isTarget);
-        tabBtn.setAttribute('aria-selected', String(isTarget));
-        panelEl.classList.toggle('active', isTarget);
-      });
-
-      if (tabName === 'map') {
-        setTimeout(function () { map.invalidateSize(); }, 80);
-      } else if (tabName === 'reports') {
-        renderReports();
-        if (highlightedId) {
-          setTimeout(function () {
-            const card = document.getElementById('card-' + highlightedId);
-            if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }, 120);
-        }
-      }
+    let supabaseClient = null;
+    if (SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.startsWith("YOUR_")) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
 
-    function openReportInList(id) {
-      highlightedId = id;
-      currentFilter = 'all';
-      document.querySelectorAll('.filter-chip').forEach(function (chip) {
-        chip.classList.toggle('active', chip.dataset.filter === 'all');
-      });
-      switchTab('reports');
+    let allHazards = [];
+    let currentTab = "map"; // 'map' | 'list' | 'guide'
+    let currentStatusFilter = "all"; // 'all' | 'active' | 'resolved'
+    let currentCategoryFilter = "all";
+    let mapInstance = null;
+    let markerGroup = null;
+
+    function getVoterKey() {
+      let key = localStorage.getItem("safewalk_voter_key");
+      if (!key) {
+        key = "voter_" + (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+        localStorage.setItem("safewalk_voter_key", key);
+      }
+      return key;
     }
 
-    function setFilter(filterKey) {
-      currentFilter = filterKey;
-      document.querySelectorAll('.filter-chip').forEach(function (chip) {
-        chip.classList.toggle('active', chip.dataset.filter === filterKey);
-      });
-      renderReports();
+    function getMyVote(hazardId) {
+      return localStorage.getItem(`safewalk_voted_${hazardId}`) || null;
     }
 
-    const dayModeBtn = document.getElementById('dayModeBtn');
-    const dayModeIcon = document.getElementById('dayModeIcon');
-    const dayModeLabel = document.getElementById('dayModeLabel');
-
-    function applyDayMode(enabled) {
-      document.body.classList.toggle('day-mode', enabled);
-      dayModeBtn.classList.toggle('active', enabled);
-      dayModeBtn.setAttribute('aria-pressed', String(enabled));
-      dayModeIcon.textContent = enabled ? '🌙' : '☀️';
-      dayModeLabel.textContent = enabled ? 'โหมดกลางคืน' : 'โหมดกลางวัน';
-      try { localStorage.setItem('rmutk_day_mode', enabled ? '1' : '0'); } catch (e) {}
+    function setMyVote(hazardId, choice) {
+      localStorage.setItem(`safewalk_voted_${hazardId}`, choice);
     }
 
-    dayModeBtn.addEventListener('click', function () {
-      applyDayMode(!document.body.classList.contains('day-mode'));
-    });
+    function computeState(item, nowMs = Date.now()) {
+      const createdMs = new Date(item.created_at || nowMs).getTime();
+      const resVotes = Number(item.resolved_votes ?? 0);
+      const unresVotes = Number(item.unresolved_votes ?? 0);
+      const totalVotes = resVotes + unresVotes;
 
-    try {
-      if (localStorage.getItem('rmutk_day_mode') === '1') {
-        applyDayMode(true);
-      }
-    } catch (e) {}
-
-    const map = L.map('map', {
-      center: RMUTK_CENTER,
-      zoom: 17,
-      minZoom: 16,
-      maxZoom: 19,
-      maxBounds: RMUTK_BOUNDS,
-      maxBoundsViscosity: 0.9
-    });
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-
-    const markerLayerGroup = L.layerGroup().addTo(map);
-
-    document.getElementById('centerRmutkBtn').addEventListener('click', function () {
-      map.setView(RMUTK_CENTER, 17, { animate: true });
-    });
-
-    const legendBox = document.getElementById('legendBox');
-    const legendToggleBtn = document.getElementById('legendToggleBtn');
-    legendToggleBtn.addEventListener('click', function () {
-      const isOpen = legendBox.classList.toggle('open');
-      legendToggleBtn.setAttribute('aria-expanded', String(isOpen));
-    });
-
-    let userBlueDotMarker = null;
-    let userAccuracyCircle = null;
-
-    document.getElementById('locateMeBtn').addEventListener('click', function () {
-      if (!navigator.geolocation) {
-        alert('อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง GPS');
-        return;
-      }
-      map.locate({ setView: true, maxZoom: 18, watch: false, enableHighAccuracy: true });
-    });
-
-    map.on('locationfound', function (e) {
-      const radiusMeters = Math.max(e.accuracy || 10, 8);
-      if (!userBlueDotMarker) {
-        const dotIcon = L.divIcon({
-          className: '',
-          html: '<div class="user-blue-dot"></div>',
-          iconSize: [14, 14],
-          iconAnchor: [7, 7]
-        });
-        userBlueDotMarker = L.marker(e.latlng, { icon: dotIcon, zIndexOffset: 900 })
-          .addTo(map)
-          .bindPopup('ตำแหน่งปัจจุบันของคุณ');
-        userAccuracyCircle = L.circle(e.latlng, {
-          radius: radiusMeters,
-          color: '#3b82f6',
-          fillColor: '#3b82f6',
-          fillOpacity: 0.15,
-          weight: 1.5
-        }).addTo(map);
-      } else {
-        userBlueDotMarker.setLatLng(e.latlng);
-        userAccuracyCircle.setLatLng(e.latlng).setRadius(radiusMeters);
-      }
-    });
-
-    map.on('locationerror', function () {
-      alert('ไม่สามารถดึงตำแหน่ง GPS ได้ กรุณาเปิดสิทธิ์ Location/GPS บนมือถือ');
-    });
-
-    /* ===================================================================
-       กล่องเทสแจ้งเหตุชั่วคราว (ส่งเข้าตาราง hazards บน Supabase โดยตรง)
-       =================================================================== */
-    const testBox = document.getElementById('testBox');
-    const toggleTestBoxBtn = document.getElementById('toggleTestBoxBtn');
-    const sendTestBtn = document.getElementById('sendTestBtn');
-    const randomRmutkSpotBtn = document.getElementById('randomRmutkSpotBtn');
-    const testStatusMsg = document.getElementById('testStatusMsg');
-
-    toggleTestBoxBtn.addEventListener('click', function () {
-      const isOpen = testBox.classList.toggle('open');
-      toggleTestBoxBtn.textContent = isOpen ? 'ซ่อนกล่องเทส' : 'เปิดกล่องเทส';
-    });
-
-    randomRmutkSpotBtn.addEventListener('click', function () {
-      const lat = (13.7118 + Math.random() * 0.0032).toFixed(6);
-      const lng = (100.5370 + Math.random() * 0.0028).toFixed(6);
-      document.getElementById('testLat').value = lat;
-      document.getElementById('testLng').value = lng;
-    });
-
-    function distanceMeters(lat1, lng1, lat2, lng2) {
-      const R = 6371000;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLng = (lng2 - lng1) * Math.PI / 180;
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLng / 2) * Math.sin(dLng / 2);
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-
-    sendTestBtn.addEventListener('click', async function () {
-      if (typeof sbClient === 'undefined' || !sbClient) {
-        testStatusMsg.textContent = 'ไม่พบการเชื่อมต่อ Supabase (sbClient)';
-        return;
+      if (item.is_resolved && item.resolved_decided_at) {
+        const decidedMs = new Date(item.resolved_decided_at).getTime();
+        return {
+          visibleOnMain: nowMs - decidedMs < TWENTY_MIN_MS,
+          isResolved: true,
+          pendingSeconds: 0,
+        };
       }
 
-      const category = document.getElementById('testCategory').value;
-      const lat = parseFloat(document.getElementById('testLat').value);
-      const lng = parseFloat(document.getElementById('testLng').value);
-      const rawDesc = document.getElementById('testDesc').value.trim();
-
-      if (Number.isNaN(lat) || Number.isNaN(lng)) {
-        testStatusMsg.textContent = 'กรุณากรอกพิกัด Lat และ Lng ให้ถูกต้อง';
-        return;
+      if (item.is_resolved && !item.resolved_decided_at) {
+        return {
+          visibleOnMain: false,
+          isResolved: true,
+          pendingSeconds: 0,
+        };
       }
 
-      sendTestBtn.disabled = true;
-      testStatusMsg.textContent = 'กำลังส่งข้อมูลเทส...';
-
-      const nowIso = new Date().toISOString();
-      const existingNear = hazards.find(function (h) {
-        return !h.isResolved && h.category === category && distanceMeters(h.lat, h.lng, lat, lng) <= MERGE_RADIUS_METERS;
-      });
-
-      if (existingNear) {
-        const nextCount = (existingNear.reportCount || 1) + 1;
-        const mergedDesc = rawDesc
-          ? (existingNear.description ? existingNear.description + ' • ' + rawDesc : rawDesc)
-          : existingNear.description;
-
-        const { error } = await sbClient
-          .from('hazards')
-          .update({
-            report_count: nextCount,
-            description: mergedDesc,
-            created_at: nowIso
-          })
-          .eq('id', existingNear.id);
-
-        sendTestBtn.disabled = false;
-        if (error) {
-          testStatusMsg.textContent = 'อัปเดตจุดใกล้เคียงไม่สำเร็จ: ' + error.message;
-          return;
-        }
-        testStatusMsg.textContent = 'รวมเข้ากับจุดใกล้เคียงในรัศมี 25 ม. เรียบร้อย (' + existingNear.id + ')';
-        await loadHazardsFromSupabase();
-        return;
+      if (totalVotes === 0 || !item.first_vote_at) {
+        return {
+          visibleOnMain: nowMs - createdMs < FIFTEEN_MIN_MS,
+          isResolved: false,
+          pendingSeconds: 0,
+        };
       }
 
-      const newId = 'HZ-TEST-' + Date.now().toString().slice(-6);
-      const { error } = await sbClient
-        .from('hazards')
-        .insert({
-          id: newId,
-          category: category,
-          lat: lat,
-          lng: lng,
-          description: rawDesc || ('[เทสระบบ] ' + (CATEGORY_META[category]?.label || category)),
-          image_url: '',
-          report_count: 1,
-          not_fixed_count: 0,
-          is_iot_alert: false,
-          is_resolved: false,
-          resolved_at: null,
-          created_at: nowIso
-        });
+      const firstMs = new Date(item.first_vote_at).getTime();
+      const elapsed = nowMs - firstMs;
 
-      sendTestBtn.disabled = false;
-      if (error) {
-        testStatusMsg.textContent = 'ส่งข้อมูลเทสไม่สำเร็จ: ' + error.message;
-        return;
+      if (elapsed < THIRTY_MIN_MS) {
+        return {
+          visibleOnMain: true,
+          isResolved: false,
+          pendingSeconds: Math.max(1, Math.ceil((THIRTY_MIN_MS - elapsed) / 1000)),
+        };
       }
 
-      document.getElementById('testDesc').value = '';
-      testStatusMsg.textContent = 'ส่งข้อมูลเทสสำเร็จ (' + newId + ') — ไปดูที่แท็บแผนที่หรือเรื่องที่คนแจ้งเข้ามาได้เลย';
-      await loadHazardsFromSupabase();
-    });
+      if (resVotes > unresVotes) {
+        return {
+          visibleOnMain: true,
+          isResolved: true,
+          pendingSeconds: 0,
+          shouldMarkResolved: true,
+        };
+      }
 
-    function mapRowToHazard(row) {
       return {
-        id: row.id,
-        category: row.category,
-        lat: Number(row.lat),
-        lng: Number(row.lng),
-        description: row.description || '',
-        imageUrl: row.image_url || '',
-        reportCount: Number(row.report_count || 1),
-        notFixedCount: Number(row.not_fixed_count || 0),
-        isIotAlert: Boolean(row.is_iot_alert),
-        isResolved: Boolean(row.is_resolved),
-        resolvedAt: row.resolved_at ? new Date(row.resolved_at).getTime() : null,
-        expiresAt: row.expires_at ? new Date(row.expires_at).getTime() : null,
-        createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now()
+        visibleOnMain: true,
+        isResolved: false,
+        pendingSeconds: 0,
       };
     }
 
-    function isHiddenFromMap(hazard) {
-      const now = Date.now();
-
-      if (hazard.expiresAt && now >= hazard.expiresAt) {
-        return true;
-      }
-
-      if (hazard.isResolved && hazard.resolvedAt) {
-        return (now - hazard.resolvedAt) >= RESOLVE_HIDE_MS;
-      }
-
-      if (!hazard.isResolved && hazard.createdAt) {
-        return (now - hazard.createdAt) >= AUTO_EXPIRE_MS;
-      }
-
-      return false;
+    function initMap() {
+      mapInstance = L.map("map").setView([13.7138, 100.5364], 16);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "© OpenStreetMap",
+      }).addTo(mapInstance);
+      markerGroup = L.layerGroup().addTo(mapInstance);
     }
 
-    function formatTimeAgo(timestamp) {
-      const diffSec = Math.max(1, Math.floor((Date.now() - timestamp) / 1000));
-      if (diffSec < 60) return diffSec + ' วินาทีที่แล้ว';
-      const diffMin = Math.floor(diffSec / 60);
-      if (diffMin < 60) return diffMin + ' นาทีที่แล้ว';
-      const diffHr = Math.floor(diffMin / 60);
-      return diffHr + ' ชั่วโมงที่แล้ว';
+    function createPinIcon(isResolved) {
+      const bg = isResolved ? "#16a34a" : "#dc2626";
+      const text = isResolved ? "✓" : "!";
+      return L.divIcon({
+        className: "safewalk-custom-pin",
+        html: `<div style="
+          width:28px;height:28px;border-radius:50%;
+          background:${bg};color:#fff;font-weight:800;font-size:14px;
+          display:flex;align-items:center;justify-content:center;
+          border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.35);
+        ">${text}</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      });
     }
 
-    async function loadHazardsFromSupabase() {
-      if (typeof sbClient === 'undefined' || !sbClient) return;
-      const { data, error } = await sbClient
-        .from('hazards')
-        .select('*')
-        .order('created_at', { ascending: false });
+    function getFilteredItems() {
+      const nowMs = Date.now();
+      return allHazards.filter((item) => {
+        const st = computeState(item, nowMs);
+        const matchesStatus =
+          currentStatusFilter === "resolved"
+            ? st.isResolved
+            : currentStatusFilter === "active"
+            ? !st.isResolved && st.visibleOnMain
+            : st.visibleOnMain;
 
-      if (error) {
-        console.error('โหลดข้อมูลจาก Supabase ไม่สำเร็จ:', error.message);
+        const matchesCategory =
+          currentCategoryFilter === "all" ||
+          String(item.category || "").toLowerCase() === currentCategoryFilter;
+
+        return matchesStatus && matchesCategory;
+      });
+    }
+
+    function updateSummaryCounts() {
+      const nowMs = Date.now();
+      let activeCount = 0;
+      let resolvedCount = 0;
+
+      allHazards.forEach((item) => {
+        const st = computeState(item, nowMs);
+        if (st.isResolved) {
+          resolvedCount += 1;
+        } else if (st.visibleOnMain) {
+          activeCount += 1;
+        }
+      });
+
+      document.getElementById("statActiveNum").textContent = activeCount;
+      document.getElementById("statResolvedNum").textContent = resolvedCount;
+      document.getElementById("activeCountBadge").textContent = activeCount;
+
+      document.getElementById("cardActiveStatus").classList.toggle("selected", currentStatusFilter === "active");
+      document.getElementById("cardResolvedStatus").classList.toggle("selected", currentStatusFilter === "resolved");
+
+      const banner = document.getElementById("activeFilterBanner");
+      const label = document.getElementById("activeFilterLabel");
+      const statusText =
+        currentStatusFilter === "resolved"
+          ? "หมุดที่แก้ไขแล้ว"
+          : currentStatusFilter === "active"
+          ? "หมุดที่กำลังดำเนินการ"
+          : "ทั้งหมด";
+      const catText =
+        currentCategoryFilter === "all"
+          ? "ทุกหมวดหมู่"
+          : CATEGORY_LABELS[currentCategoryFilter] || currentCategoryFilter;
+
+      const isFiltered = currentStatusFilter !== "all" || currentCategoryFilter !== "all";
+      banner.classList.toggle("show", isFiltered);
+      label.textContent = `กำลังแสดง: ${statusText} · ${catText}`;
+    }
+
+    function renderMap() {
+      if (!mapInstance || !markerGroup) return;
+      markerGroup.clearLayers();
+      const items = getFilteredItems();
+
+      items.forEach((item) => {
+        const lat = Number(item.lat);
+        const lng = Number(item.lng);
+        if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+
+        const st = computeState(item);
+        const marker = L.marker([lat, lng], { icon: createPinIcon(st.isResolved) });
+        marker.bindPopup(`
+          <strong>${st.isResolved ? "✅ แก้ไขแล้ว" : "🔴 กำลังดำเนินการ"}</strong><br/>
+          <span>${item.description || CATEGORY_LABELS[item.category] || item.category}</span><br/>
+          <small>${lat.toFixed(5)}, ${lng.toFixed(5)}</small>
+        `);
+        markerGroup.addLayer(marker);
+      });
+
+      if (items.length > 0 && currentStatusFilter !== "all") {
+        const bounds = L.latLngBounds(items.map((x) => [Number(x.lat), Number(x.lng)]));
+        mapInstance.fitBounds(bounds, { padding: [36, 36], maxZoom: 17 });
+      }
+    }
+
+    function renderList() {
+      const container = document.getElementById("hazardListContainer");
+      const items = getFilteredItems();
+
+      if (items.length === 0) {
+        container.innerHTML = `<div class="hazard-card"><div class="card-sub">ไม่มีรายการตามตัวกรองที่เลือก</div></div>`;
         return;
       }
 
-      hazards = (data || []).map(mapRowToHazard);
-      renderAll();
-    }
+      container.innerHTML = items
+        .map((item) => {
+          const st = computeState(item);
+          const unresCount = Number(item.unresolved_votes ?? 0);
+          const resCount = Number(item.resolved_votes ?? 0);
+          const myVote = getMyVote(item.id);
+          const minsLeft = st.pendingSeconds > 0 ? Math.ceil(st.pendingSeconds / 60) : 0;
 
-    async function markNotResolved(id) {
-      const target = hazards.find(function (h) { return h.id === id; });
-      if (!target || typeof sbClient === 'undefined' || !sbClient) return;
-      const { error } = await sbClient
-        .from('hazards')
-        .update({
-          is_resolved: false,
-          resolved_at: null,
-          not_fixed_count: (target.notFixedCount || 0) + 1,
-          created_at: new Date().toISOString()
+          return `
+            <div class="hazard-card">
+              <div class="card-top">
+                <div class="card-title">${CATEGORY_LABELS[item.category] || item.category}</div>
+                <span class="status-tag ${st.isResolved ? "resolved" : "unresolved"}">
+                  ${st.isResolved ? "แก้ไขแล้ว" : "กำลังดำเนินการ"}
+                </span>
+              </div>
+              <div>${item.description || ""}</div>
+              <div class="card-meta">
+                <span>📍 ${Number(item.lat).toFixed(5)}, ${Number(item.lng).toFixed(5)}</span>
+                <span>รหัส ${item.id}</span>
+              </div>
+              ${
+                minsLeft > 0
+                  ? `<div class="vote-status-note">⏳ รอผลโหวตอีกประมาณ ${minsLeft} นาที</div>`
+                  : myVote
+                  ? `<div class="vote-status-note">คุณโหวต "${myVote === "resolved" ? "แก้ไขแล้ว" : "ยังไม่แก้ไข"}" แล้ว</div>`
+                  : ""
+              }
+              <div class="card-actions">
+                <button class="action-btn" type="button" onclick="focusOnMap(${Number(item.lat)}, ${Number(item.lng)})">
+                  ดูบนแผนที่
+                </button>
+                <button
+                  class="action-btn ${myVote === "unresolved" ? "picked" : ""}"
+                  type="button"
+                  ${myVote ? "disabled" : ""}
+                  onclick="voteHazard('${item.id}', 'unresolved')"
+                >
+                  ยังไม่แก้ไข (${unresCount})
+                </button>
+                <button
+                  class="action-btn ${myVote === "resolved" ? "picked" : ""}"
+                  type="button"
+                  ${myVote ? "disabled" : ""}
+                  onclick="voteHazard('${item.id}', 'resolved')"
+                >
+                  ✓ แก้ไขแล้ว (${resCount})
+                </button>
+              </div>
+            </div>
+          `;
         })
-        .eq('id', id);
-
-      if (!error) await loadHazardsFromSupabase();
+        .join("");
     }
 
-    async function markResolved(id) {
-      if (typeof sbClient === 'undefined' || !sbClient) return;
-      const { error } = await sbClient
-        .from('hazards')
-        .update({
-          is_resolved: true,
-          resolved_at: new Date().toISOString()
-        })
-        .eq('id', id);
-
-      if (!error) await loadHazardsFromSupabase();
+    function refreshAllUI() {
+      updateSummaryCounts();
+      renderMap();
+      renderList();
     }
 
-    function renderMarkers() {
-      markerLayerGroup.clearLayers();
+    function switchTab(tabName) {
+      currentTab = tabName;
+      document.getElementById("mapSection").classList.toggle("hidden", tabName !== "map");
+      document.getElementById("listSection").classList.toggle("hidden", tabName !== "list");
+      document.getElementById("guideSection").classList.toggle("hidden", tabName !== "guide");
 
-      hazards.forEach(function (h) {
-        if (isHiddenFromMap(h)) return;
-        const meta = CATEGORY_META[h.category] || CATEGORY_META.other;
-        const isHighAlert = !h.isResolved && (h.category === 'smoke' || h.isIotAlert || h.reportCount >= 2 || (h.notFixedCount || 0) > 0);
-        const pinClass = h.isResolved ? 'pin-done' : (isHighAlert ? 'pin-smoke' : meta.pinClass);
-        const circleColor = h.isResolved ? '#22c55e' : (isHighAlert ? '#ef4444' : meta.circleColor);
+      document.getElementById("tabMapBtn").classList.toggle("active", tabName === "map");
+      document.getElementById("tabListBtn").classList.toggle("active", tabName === "list");
+      document.getElementById("tabGuideBtn").classList.toggle("active", tabName === "guide");
 
-        L.circle([h.lat, h.lng], {
-          radius: MERGE_RADIUS_METERS,
-          color: circleColor,
-          fillColor: circleColor,
-          fillOpacity: h.isResolved ? 0.08 : 0.16,
-          weight: 1.5,
-          dashArray: h.isResolved ? '4 4' : null
-        }).addTo(markerLayerGroup);
-
-        const iconHtml = L.divIcon({
-          className: '',
-          html: '<div class="pin-marker ' + pinClass + '"><span>' + (h.isResolved ? '✓' : meta.icon) + '</span></div>',
-          iconSize: [24, 24],
-          iconAnchor: [12, 24]
-        });
-
-        const marker = L.marker([h.lat, h.lng], { icon: iconHtml }).addTo(markerLayerGroup);
-        marker.on('click', function () {
-          openReportInList(h.id);
-        });
-      });
-    }
-
-    function renderReports() {
-      const listEl = document.getElementById('reportsList');
-      const sorted = hazards.slice().sort(function (a, b) {
-        return b.createdAt - a.createdAt;
-      });
-
-      const activeCount = sorted.filter(function (h) { return !h.isResolved; }).length;
-      const resolvedCount = sorted.filter(function (h) { return h.isResolved; }).length;
-
-      document.getElementById('statActive').textContent = activeCount;
-      document.getElementById('statResolved').textContent = resolvedCount;
-      document.getElementById('activeCountBadge').textContent = activeCount;
-
-      const filtered = sorted.filter(function (h) {
-        if (currentFilter === 'all') return true;
-        if (currentFilter === 'resolved') return h.isResolved;
-        return !h.isResolved && h.category === currentFilter;
-      });
-
-      if (filtered.length === 0) {
-        listEl.innerHTML = '<div class="empty-box">ยังไม่มีรายการในหมวดนี้</div>';
-        return;
+      if (tabName === "map" && mapInstance) {
+        setTimeout(() => mapInstance.invalidateSize(), 120);
       }
-
-      listEl.innerHTML = filtered.map(function (h) {
-        const meta = CATEGORY_META[h.category] || CATEGORY_META.other;
-        const isHighAlert = !h.isResolved && (h.category === 'smoke' || h.isIotAlert || h.reportCount >= 2 || (h.notFixedCount || 0) > 0);
-        const cardClass = h.isResolved ? 'resolved' : (isHighAlert ? 'smoke' : h.category);
-        const badgeClass = h.isResolved ? 'badge-done' : (isHighAlert ? 'badge-smoke' : meta.badgeClass);
-        const badgeText = h.isResolved
-          ? 'แก้ไขแล้ว'
-          : (h.isIotAlert ? ('IoT ตรวจพบควัน (' + h.reportCount + ')') : (h.reportCount >= 2 ? ('แจ้งซ้ำ ' + h.reportCount + ' จุด') : meta.label));
-
-        const imgHtml = h.imageUrl
-          ? ('<img src="' + h.imageUrl + '" class="card-img" alt="รูปภาพประกอบเหตุการณ์" loading="lazy" />')
-          : '';
-
-        const statusBtnHtml = !h.isResolved
-          ? ('<button class="pill-btn btn-action" type="button" onclick="markNotResolved(\'' + h.id + '\')">ยังไม่แก้ไข (' + (h.notFixedCount || 0) + ')</button>' +
-             '<button class="pill-btn btn-action" type="button" onclick="markResolved(\'' + h.id + '\')">✓ แก้ไขแล้ว</button>')
-          : '';
-
-        const highlightClass = (highlightedId === h.id) ? ' highlighted' : '';
-
-        return (
-          '<article id="card-' + h.id + '" class="hazard-card ' + cardClass + highlightClass + '">' +
-            '<div class="card-top">' +
-              '<div class="card-title">' + meta.icon + ' ' + meta.label + '</div>' +
-              '<span class="badge ' + badgeClass + '">' + badgeText + '</span>' +
-            '</div>' +
-            '<div class="card-desc">' + (h.description || '-') + '</div>' +
-            imgHtml +
-            '<div class="card-meta">' +
-              '<span>📍 ' + h.lat.toFixed(5) + ', ' + h.lng.toFixed(5) + '</span>' +
-              '<span>🕒 ' + formatTimeAgo(h.createdAt) + '</span>' +
-            '</div>' +
-            '<div class="card-actions">' +
-              '<button class="pill-btn btn-action" type="button" onclick="focusOnMap(' + h.lat + ', ' + h.lng + ')">ดูบนแผนที่</button>' +
-              '<div style="display:flex;gap:6px;flex-wrap:wrap;">' + statusBtnHtml + '</div>' +
-            '</div>' +
-          '</article>'
-        );
-      }).join('');
     }
 
     function focusOnMap(lat, lng) {
-      switchTab('map');
-      setTimeout(function () {
-        map.setView([lat, lng], 18, { animate: true });
-      }, 100);
+      switchTab("map");
+      setTimeout(() => {
+        if (mapInstance) mapInstance.setView([lat, lng], 18);
+      }, 150);
     }
 
-    function renderAll() {
-      renderMarkers();
-      renderReports();
+    async function voteHazard(hazardId, choice) {
+      if (getMyVote(hazardId)) return;
+      const target = allHazards.find((h) => String(h.id) === String(hazardId));
+      if (!target) return;
+
+      const nextResolved = Number(target.resolved_votes ?? 0) + (choice === "resolved" ? 1 : 0);
+      const nextUnresolved = Number(target.unresolved_votes ?? 0) + (choice === "unresolved" ? 1 : 0);
+      const firstVoteAt = target.first_vote_at || new Date().toISOString();
+
+      target.resolved_votes = nextResolved;
+      target.unresolved_votes = nextUnresolved;
+      target.first_vote_at = firstVoteAt;
+      setMyVote(hazardId, choice);
+      refreshAllUI();
+
+      if (supabaseClient) {
+        await supabaseClient.from("hazard_votes").insert({
+          hazard_id: hazardId,
+          voter_key: getVoterKey(),
+          vote_choice: choice,
+        });
+        await supabaseClient
+          .from("hazards")
+          .update({
+            resolved_votes: nextResolved,
+            unresolved_votes: nextUnresolved,
+            first_vote_at: firstVoteAt,
+          })
+          .eq("id", hazardId);
+      }
     }
 
-    if (typeof sbClient !== 'undefined' && sbClient) {
-      sbClient
-        .channel('hazards-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'hazards' }, function () {
-          loadHazardsFromSupabase();
-        })
-        .subscribe();
+    async function loadHazardsFromSupabase() {
+      if (!supabaseClient) {
+        refreshAllUI();
+        return;
+      }
+      const { data, error } = await supabaseClient
+        .from("hazards")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!error && Array.isArray(data)) {
+        allHazards = data;
+      }
+      refreshAllUI();
     }
 
-    setInterval(function () {
-      renderMarkers();
-      loadHazardsFromSupabase();
-    }, 15000);
+    document.getElementById("tabMapBtn").addEventListener("click", () => switchTab("map"));
+    document.getElementById("tabListBtn").addEventListener("click", () => switchTab("list"));
+    document.getElementById("tabGuideBtn").addEventListener("click", () => switchTab("guide"));
 
-    renderAll();
+    document.getElementById("cardActiveStatus").addEventListener("click", () => {
+      currentStatusFilter = currentStatusFilter === "active" ? "all" : "active";
+      switchTab("map");
+      refreshAllUI();
+    });
+
+    document.getElementById("cardResolvedStatus").addEventListener("click", () => {
+      currentStatusFilter = currentStatusFilter === "resolved" ? "all" : "resolved";
+      switchTab("map");
+      refreshAllUI();
+    });
+
+    document.querySelectorAll("#categoryFilterBar .cat-chip").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#categoryFilterBar .cat-chip").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentCategoryFilter = btn.dataset.category || "all";
+        refreshAllUI();
+      });
+    });
+
+    document.getElementById("resetFilterBtn").addEventListener("click", () => {
+      currentStatusFilter = "all";
+      currentCategoryFilter = "all";
+      document.querySelectorAll("#categoryFilterBar .cat-chip").forEach((b) => {
+        b.classList.toggle("active", b.dataset.category === "all");
+      });
+      refreshAllUI();
+    });
+
+    document.getElementById("themeToggleBtn").addEventListener("click", () => {
+      document.body.classList.toggle("dark-mode");
+    });
+
+    initMap();
     loadHazardsFromSupabase();
+    setInterval(refreshAllUI, 20000);
   </script>
 </body>
 </html>
