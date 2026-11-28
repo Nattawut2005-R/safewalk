@@ -373,6 +373,11 @@ def process_event(event: dict) -> None:
             )
 
 
+@app.get("/")
+def home():
+    return "RMUTK SafeWalk Bot is running", 200
+
+
 @app.get("/health")
 def health():
     return jsonify({"status": "ok"}), 200
