@@ -21,7 +21,10 @@
           <div class="brand-sub">มทร.กรุงเทพ · โหมดติดตามสถานะ</div>
         </div>
       </div>
-      <button id="themeToggleBtn" class="pill-btn" type="button">🌙 โหมดกลางคืน</button>
+      <div class="header-actions">
+        <a href="admin.html" class="pill-btn">🛡️ แอดมิน</a>
+        <button id="themeToggleBtn" class="pill-btn" type="button">🌙 โหมดกลางคืน</button>
+      </div>
     </div>
 
     <div class="nav-tabs">
@@ -43,24 +46,25 @@
       </button>
     </div>
 
-    <div id="categoryFilterBar" class="filter-scroll">
-      <button class="cat-chip active" data-category="all" type="button">ทั้งหมด</button>
-      <button class="cat-chip" data-category="smoke" type="button">🚬 ควันบุหรี่</button>
-      <button class="cat-chip" data-category="dark" type="button">💡 ไฟทางดับ</button>
-      <button class="cat-chip" data-category="block" type="button">🚧 กีดขวาง</button>
-      <button class="cat-chip" data-category="other" type="button">⚠️ อื่นๆ</button>
-    </div>
-
     <div id="activeFilterBanner" class="active-filter-banner">
       <span id="activeFilterLabel">กำลังแสดง: ทั้งหมด</span>
       <button id="resetFilterBtn" class="reset-link-btn" type="button">แสดงทั้งหมด</button>
     </div>
 
+    <!-- หน้าแผนที่: โล่งๆ เหลือเฉพาะแผนที่ -->
     <section id="mapSection">
       <div id="map"></div>
     </section>
 
+    <!-- หน้าเรื่องที่คนแจ้งเข้ามา: มีปุ่มกรองหมวดหมู่และการ์ดรายการ -->
     <section id="listSection" class="hidden">
+      <div id="categoryFilterBar" class="filter-scroll">
+        <button class="cat-chip active" data-category="all" type="button">ทั้งหมด</button>
+        <button class="cat-chip" data-category="smoke" type="button">🚬 ควันบุหรี่</button>
+        <button class="cat-chip" data-category="dark" type="button">💡 ไฟทางดับ</button>
+        <button class="cat-chip" data-category="block" type="button">🚧 กีดขวาง</button>
+        <button class="cat-chip" data-category="other" type="button">⚠️ อื่นๆ</button>
+      </div>
       <div id="hazardListContainer"></div>
     </section>
 
@@ -79,11 +83,8 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
   <script>
-    const SUPABASE_URL = "https://cysxdienifyupfunevfs.supabase.co";
-    // ใส่ Anon Key ของโปรเจกต์ cysxdienifyupfunevfs
-    const SUPABASE_ANON_KEY = "sb_publishable_OB3h1bbCSqkRjQy6jLW74w_CMHS6Dr";
-
     const CATEGORY_LABELS = {
       smoke: "สูบบุหรี่ในพื้นที่ห้ามสูบ",
       dark: "ไฟทางดับ / ทางเดินมืด",
@@ -95,21 +96,16 @@
     const THIRTY_MIN_MS = 30 * 60 * 1000;
     const TWENTY_MIN_MS = 20 * 60 * 1000;
 
-    let supabaseClient = null;
-    if (
-      window.supabase &&
-      SUPABASE_ANON_KEY &&
-      !SUPABASE_ANON_KEY.startsWith("YOUR_")
-    ) {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    }
-
     let allHazards = [];
     let currentTab = "map";
-    let currentStatusFilter = "all";
+    let currentStatusFilter = "all"; // 'all' | 'active' | 'resolved'
     let currentCategoryFilter = "all";
     let mapInstance = null;
     let markerGroup = null;
+
+    function getDb() {
+      return typeof sbClient !== "undefined" && sbClient ? sbClient : null;
+    }
 
     function getVoterKey() {
       let key = localStorage.getItem("safewalk_voter_key");
@@ -196,7 +192,8 @@
     }
 
     async function syncResolvedDecisions() {
-      if (!supabaseClient) return;
+      const db = getDb();
+      if (!db) return;
       const nowIso = new Date().toISOString();
 
       for (const item of allHazards) {
@@ -204,7 +201,7 @@
         if (st.shouldMarkResolved && !item.is_resolved) {
           item.is_resolved = true;
           item.resolved_decided_at = nowIso;
-          await supabaseClient
+          await db
             .from("hazards")
             .update({
               is_resolved: true,
@@ -257,6 +254,7 @@
             : st.visibleOnMain;
 
         const matchesCategory =
+          currentTab !== "list" ||
           currentCategoryFilter === "all" ||
           String(item.category || "").toLowerCase() === currentCategoryFilter;
 
@@ -286,10 +284,12 @@
       if (resolvedEl) resolvedEl.textContent = resolvedCount;
       if (badgeEl) badgeEl.textContent = activeCount;
 
-      const activeCard = document.getElementById("cardActiveStatus");
-      const resolvedCard = document.getElementById("cardResolvedStatus");
-      if (activeCard) activeCard.classList.toggle("selected", currentStatusFilter === "active");
-      if (resolvedCard) resolvedCard.classList.toggle("selected", currentStatusFilter === "resolved");
+      document
+        .getElementById("cardActiveStatus")
+        ?.classList.toggle("selected", currentStatusFilter === "active");
+      document
+        .getElementById("cardResolvedStatus")
+        ?.classList.toggle("selected", currentStatusFilter === "resolved");
 
       const banner = document.getElementById("activeFilterBanner");
       const label = document.getElementById("activeFilterLabel");
@@ -300,14 +300,18 @@
             : currentStatusFilter === "active"
             ? "หมุดที่กำลังดำเนินการ"
             : "ทั้งหมด";
-        const catText =
-          currentCategoryFilter === "all"
-            ? "ทุกหมวดหมู่"
-            : CATEGORY_LABELS[currentCategoryFilter] || currentCategoryFilter;
 
-        const isFiltered = currentStatusFilter !== "all" || currentCategoryFilter !== "all";
+        const catText =
+          currentTab === "list" && currentCategoryFilter !== "all"
+            ? ` · ${CATEGORY_LABELS[currentCategoryFilter] || currentCategoryFilter}`
+            : "";
+
+        const isFiltered =
+          currentStatusFilter !== "all" ||
+          (currentTab === "list" && currentCategoryFilter !== "all");
+
         banner.classList.toggle("show", isFiltered);
-        label.textContent = `กำลังแสดง: ${statusText} · ${catText}`;
+        label.textContent = `กำลังแสดง: ${statusText}${catText}`;
       }
     }
 
@@ -418,6 +422,8 @@
       document.getElementById("tabListBtn")?.classList.toggle("active", tabName === "list");
       document.getElementById("tabGuideBtn")?.classList.toggle("active", tabName === "guide");
 
+      refreshAllUI();
+
       if (tabName === "map" && mapInstance) {
         setTimeout(() => mapInstance.invalidateSize(), 120);
       }
@@ -445,14 +451,15 @@
       setMyVote(hazardId, choice);
       refreshAllUI();
 
-      if (supabaseClient) {
-        await supabaseClient.from("hazard_votes").insert({
+      const db = getDb();
+      if (db) {
+        await db.from("hazard_votes").insert({
           hazard_id: hazardId,
           voter_key: getVoterKey(),
           vote_choice: choice,
         });
 
-        await supabaseClient
+        await db
           .from("hazards")
           .update({
             resolved_votes: nextResolved,
@@ -464,12 +471,13 @@
     }
 
     async function loadHazardsFromSupabase() {
-      if (!supabaseClient) {
+      const db = getDb();
+      if (!db) {
         refreshAllUI();
         return;
       }
 
-      const { data, error } = await supabaseClient
+      const { data, error } = await db
         .from("hazards")
         .select("*")
         .order("created_at", { ascending: false });
