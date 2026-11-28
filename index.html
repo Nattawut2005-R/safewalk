@@ -22,7 +22,6 @@
         </div>
       </div>
       <div class="header-actions">
-        <a href="admin.html" class="pill-btn">🛡️ แอดมิน</a>
         <button id="themeToggleBtn" class="pill-btn" type="button">🌙 โหมดกลางคืน</button>
       </div>
     </div>
@@ -102,6 +101,7 @@
     let currentCategoryFilter = "all";
     let mapInstance = null;
     let markerGroup = null;
+    let userLocationMarker = null;
 
     function getDb() {
       return typeof sbClient !== "undefined" && sbClient ? sbClient : null;
@@ -212,6 +212,44 @@
       }
     }
 
+    function createUserBlueDotIcon() {
+      return L.divIcon({
+        className: "safewalk-user-dot",
+        html: `<div style="
+          width:16px;height:16px;border-radius:50%;
+          background:#2563eb;
+          border:3px solid #ffffff;
+          box-shadow:0 0 0 4px rgba(37,99,235,0.28), 0 2px 6px rgba(0,0,0,0.35);
+        "></div>`,
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+      });
+    }
+
+    function trackUserLocation() {
+      if (!mapInstance || !navigator.geolocation) return;
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+
+          if (!userLocationMarker) {
+            userLocationMarker = L.marker([lat, lng], {
+              icon: createUserBlueDotIcon(),
+              zIndexOffset: 1000,
+            })
+              .bindPopup("📍 ตำแหน่งปัจจุบันของคุณ")
+              .addTo(mapInstance);
+          } else {
+            userLocationMarker.setLatLng([lat, lng]);
+          }
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      );
+    }
+
     function initMap() {
       const mapEl = document.getElementById("map");
       if (!mapEl || !window.L) return;
@@ -223,6 +261,7 @@
       }).addTo(mapInstance);
 
       markerGroup = L.layerGroup().addTo(mapInstance);
+      trackUserLocation();
     }
 
     function createPinIcon(isResolved) {
