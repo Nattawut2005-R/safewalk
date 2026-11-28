@@ -21,14 +21,8 @@
       border: 1px solid var(--border);
     }
 
-    .popup-img {
-      width: 100%;
-      max-width: 240px;
-      max-height: 135px;
-      object-fit: cover;
-      border-radius: 8px;
-      margin-top: 6px;
-      display: block;
+    .leaflet-popup-content {
+      margin: 12px 14px;
     }
   </style>
 </head>
@@ -128,7 +122,7 @@
         </div>
         <p style="margin:8px 0 0;font-size:13px;color:var(--muted);">
           • เลือกโหวตได้ 1 ครั้งต่อรายการ (ยังไม่แก้ไข หรือ แก้ไขแล้ว) โดยปุ่มยังคงแสดงผลตามปกติ<br/>
-          • หากไม่มีคนกดโหวตเลย รายการจะอยู่บนหน้าเว็บ 15 นาที (ยกเว้นหมุดที่แอดมินกำหนดช่วงเวลาไว้ ซึ่งจะแสดงจนครบกำหนดเวลา)<br/>
+          • หากไม่มีคนกดโหวตเลย รายการทั่วไปจะอยู่บนหน้าเว็บ 15 นาที (ยกเว้นหมุดที่แอดมินกำหนดช่วงเวลาไว้ ซึ่งจะแสดงจนครบกำหนดเวลา)<br/>
           • เมื่อมีคนกดโหวต "แก้ไขแล้ว" คนแรก ระบบจะเริ่มนับ 15 นาที ระหว่างนี้ยังเป็น "ยังไม่แก้ไข"<br/>
           • เมื่อครบ 15 นาทีแล้วคะแนน "แก้ไขแล้ว" ชนะ จะเปลี่ยนเป็น "แก้ไขแล้ว" และย้ายไปอยู่ฝั่งแก้ไขแล้ว
         </p>
@@ -204,6 +198,10 @@
       localStorage.setItem(`safewalk_voted_${hazardId}`, choice);
     }
 
+    function isAdminCreatedHazard(item) {
+      return Boolean(item.created_by_admin) || String(item.id || "").startsWith("HZ-ADM-");
+    }
+
     function isWithinScheduledWindow(item, nowMs = Date.now()) {
       if (item.start_at) {
         const startMs = new Date(item.start_at).getTime();
@@ -221,7 +219,6 @@
     }
 
     function computeState(item, nowMs = Date.now()) {
-      // 1) ถ้าอยู่นอกช่วงเวลา start_at - end_at ให้ซ่อนทันที (หายไปตามเวลาที่กำหนด)
       if (!isWithinScheduledWindow(item, nowMs)) {
         return {
           visibleOnMain: false,
@@ -240,8 +237,7 @@
         };
       }
 
-      // 2) ถ้าเป็นหมุดที่ Admin ปัก หรือมีการตั้งเวลา end_at ไว้ ให้แสดงตลอดจนครบเวลา end_at (ไม่หายไปตอน 15 นาที)
-      if (item.created_by_admin || item.end_at) {
+      if (isAdminCreatedHazard(item)) {
         return {
           visibleOnMain: true,
           isResolved: false,
@@ -312,7 +308,7 @@
         if (item.is_resolved) continue;
 
         let expiredBySchedule = false;
-        if (item.end_at) {
+        if (isAdminCreatedHazard(item) && item.end_at) {
           const endMs = new Date(item.end_at).getTime();
           if (!Number.isNaN(endMs) && nowMs > endMs) {
             expiredBySchedule = true;
@@ -498,14 +494,28 @@
         const st = computeState(item);
         const catKey = String(item.category || "").toLowerCase();
         const catLabel = CATEGORY_LABELS[catKey] || item.category || "จุดเสี่ยง";
+        const safeImgUrl = item.image_url ? String(item.image_url).trim() : "";
+        const imgHtml = safeImgUrl
+          ? `<div style="margin-top:8px;">
+               <img
+                 src="${safeImgUrl}"
+                 alt="รูปจุดเสี่ยงจาก LINE"
+                 style="width:220px;max-width:100%;height:135px;object-fit:cover;border-radius:10px;border:1px solid #e2e8f0;display:block;"
+                 onerror="this.style.display='none'"
+               />
+             </div>`
+          : "";
+
         const marker = L.marker([lat, lng], {
           icon: createCategoryPinIcon(catKey, st.isResolved),
         });
         marker.bindPopup(`
-          <strong>${catLabel} (${st.isResolved ? "แก้ไขแล้ว" : "กำลังดำเนินการ"})</strong><br/>
-          <span>${item.description || catLabel}</span><br/>
-          ${item.image_url ? `<img src="${item.image_url}" alt="รูปจุดเสี่ยง" class="popup-img" />` : ""}
-          <small>${lat.toFixed(5)}, ${lng.toFixed(5)}</small>
+          <div style="min-width:190px;max-width:240px;line-height:1.45;">
+            <strong>${catLabel} (${st.isResolved ? "แก้ไขแล้ว" : "กำลังดำเนินการ"})</strong><br/>
+            <span>${item.description || catLabel}</span>
+            ${imgHtml}
+            <div style="margin-top:6px;"><small>${lat.toFixed(5)}, ${lng.toFixed(5)}</small></div>
+          </div>
         `);
         markerGroup.addLayer(marker);
       });
@@ -539,7 +549,7 @@
           const catKey = String(item.category || "").toLowerCase();
           const catIcon = CATEGORY_ICONS[catKey] || "lucide:alert-circle";
           const scheduleText =
-            item.start_at || item.end_at
+            isAdminCreatedHazard(item) && (item.start_at || item.end_at)
               ? `ช่วงเวลา: ${item.start_at ? new Date(item.start_at).toLocaleString("th-TH") : "-"} ถึง ${item.end_at ? new Date(item.end_at).toLocaleString("th-TH") : "-"}`
               : "";
 
