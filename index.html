@@ -6,369 +6,10 @@
   <title>RMUTK SafeWalk — แผนที่ทางเดินปลอดภัย มทร.กรุงเทพ</title>
   <link
     rel="stylesheet"
-    <link rel="stylesheet" href="eiei.css" />
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     crossorigin=""
   />
-  <style>
-    :root {
-      --bg: #f3f7f4;
-      --surface: #ffffff;
-      --surface-2: #eef5f0;
-      --text: #132219;
-      --muted: #5b6d62;
-      --primary: #15803d;
-      --primary-soft: #dcfce7;
-      --danger: #dc2626;
-      --danger-soft: #fee2e2;
-      --border: #cde0d3;
-      --shadow: 0 6px 18px rgba(19, 34, 25, 0.06);
-    }
-
-    body.dark-mode {
-      --bg: #0e1612;
-      --surface: #17231d;
-      --surface-2: #1f2f27;
-      --text: #e8f3ec;
-      --muted: #9bb3a5;
-      --primary: #22c55e;
-      --primary-soft: rgba(34, 197, 94, 0.15);
-      --danger: #f87171;
-      --danger-soft: rgba(248, 113, 113, 0.15);
-      --border: #2a3e33;
-      --shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
-    }
-
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.45;
-    }
-
-    .container {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 12px 14px 48px;
-    }
-
-    .header-card {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 18px;
-      padding: 12px 14px;
-      box-shadow: var(--shadow);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-
-    .brand-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .brand-logo {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      background: var(--primary-soft);
-      color: var(--primary);
-      border: 1.5px solid var(--primary);
-      display: grid;
-      place-items: center;
-      font-weight: 800;
-      font-size: 18px;
-    }
-
-    .brand-title {
-      font-weight: 800;
-      font-size: 15px;
-    }
-
-    .brand-sub {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .pill-btn {
-      background: var(--surface);
-      color: var(--text);
-      border: 1.5px solid var(--primary);
-      border-radius: 999px;
-      padding: 7px 14px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      white-space: nowrap;
-    }
-
-    .pill-btn.active {
-      background: var(--primary);
-      color: #ffffff;
-    }
-
-    .nav-tabs {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .nav-tab {
-      background: var(--surface);
-      color: var(--text);
-      border: 1.5px solid var(--primary);
-      border-radius: 999px;
-      padding: 9px 10px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-
-    .nav-tab.active {
-      background: var(--primary-soft);
-      box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.18);
-    }
-
-    .count-badge {
-      background: #ef4444;
-      color: #fff;
-      font-size: 11px;
-      font-weight: 800;
-      padding: 1px 6px;
-      border-radius: 999px;
-    }
-
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    .summary-card {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 16px;
-      padding: 14px 16px;
-      box-shadow: var(--shadow);
-      cursor: pointer;
-      transition: transform 0.12s ease, border-color 0.12s ease;
-      text-align: left;
-    }
-
-    .summary-card:active {
-      transform: scale(0.99);
-    }
-
-    .summary-card.selected {
-      border-width: 2px;
-      border-color: var(--primary);
-      background: var(--surface-2);
-    }
-
-    .summary-num {
-      font-size: 26px;
-      font-weight: 800;
-      line-height: 1.1;
-      margin-bottom: 4px;
-    }
-
-    .summary-num.danger {
-      color: var(--danger);
-    }
-
-    .summary-num.success {
-      color: var(--primary);
-    }
-
-    .summary-label {
-      font-size: 13px;
-      color: var(--muted);
-      font-weight: 600;
-    }
-
-    .filter-scroll {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding-bottom: 6px;
-      margin-bottom: 12px;
-      scrollbar-width: none;
-    }
-
-    .filter-scroll::-webkit-scrollbar {
-      display: none;
-    }
-
-    .cat-chip {
-      background: var(--surface);
-      color: var(--text);
-      border: 1.5px solid var(--primary);
-      border-radius: 999px;
-      padding: 7px 14px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .cat-chip.active {
-      background: var(--primary);
-      color: #ffffff;
-    }
-
-    /* ซ่อนปุ่มตัวกรอง "แก้ไขแล้ว" ในแถบหมวดหมู่แนวนอน */
-    .filter-scroll [data-category="resolved"],
-    .filter-scroll .filter-resolved-btn {
-      display: none !important;
-    }
-
-    .active-filter-banner {
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 8px 12px;
-      margin-bottom: 10px;
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .active-filter-banner.show {
-      display: flex;
-    }
-
-    .reset-link-btn {
-      background: var(--surface);
-      color: var(--primary);
-      border: 1px solid var(--primary);
-      border-radius: 999px;
-      padding: 4px 10px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    #map {
-      width: 100%;
-      height: 430px;
-      border-radius: 18px;
-      border: 1.5px solid var(--border);
-      box-shadow: var(--shadow);
-      z-index: 1;
-    }
-
-    .hazard-card {
-      background: var(--surface);
-      border: 1.5px solid var(--primary);
-      border-radius: 18px;
-      padding: 14px 16px;
-      margin-bottom: 12px;
-      box-shadow: var(--shadow);
-    }
-
-    .card-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
-    .card-title {
-      font-size: 16px;
-      font-weight: 800;
-    }
-
-    .status-tag {
-      font-size: 12px;
-      font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 999px;
-      white-space: nowrap;
-    }
-
-    .status-tag.resolved {
-      background: var(--primary-soft);
-      color: var(--primary);
-    }
-
-    .status-tag.unresolved {
-      background: #fef3c7;
-      color: #92400e;
-    }
-
-    .card-meta {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 6px;
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .vote-status-note {
-      font-size: 12px;
-      color: var(--primary);
-      font-weight: 700;
-      margin-top: 8px;
-    }
-
-    .card-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    .action-btn {
-      background: var(--surface);
-      color: var(--primary);
-      border: 1.5px solid var(--primary);
-      border-radius: 999px;
-      padding: 7px 14px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .action-btn.picked {
-      background: var(--primary);
-      color: #ffffff;
-    }
-
-    .action-btn:disabled {
-      opacity: 0.65;
-      cursor: default;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-  </style>
+  <link rel="stylesheet" href="eiei.css" />
 </head>
 <body>
   <div class="container">
@@ -411,7 +52,7 @@
     </div>
 
     <div id="activeFilterBanner" class="active-filter-banner">
-      <span id="activeFilterLabel">กำลังกรอง: ทั้งหมด</span>
+      <span id="activeFilterLabel">กำลังแสดง: ทั้งหมด</span>
       <button id="resetFilterBtn" class="reset-link-btn" type="button">แสดงทั้งหมด</button>
     </div>
 
@@ -440,7 +81,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL = "https://cysxdienifyupfunevfs.supabase.co";
-    // แทนที่ด้วย anon key ของโปรเจกต์ cysxdienifyupfunevfs
+    // ใส่ Anon Key ของโปรเจกต์ cysxdienifyupfunevfs
     const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 
     const CATEGORY_LABELS = {
@@ -455,13 +96,17 @@
     const TWENTY_MIN_MS = 20 * 60 * 1000;
 
     let supabaseClient = null;
-    if (SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.startsWith("YOUR_")) {
+    if (
+      window.supabase &&
+      SUPABASE_ANON_KEY &&
+      !SUPABASE_ANON_KEY.startsWith("YOUR_")
+    ) {
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
 
     let allHazards = [];
-    let currentTab = "map"; // 'map' | 'list' | 'guide'
-    let currentStatusFilter = "all"; // 'all' | 'active' | 'resolved'
+    let currentTab = "map";
+    let currentStatusFilter = "all";
     let currentCategoryFilter = "all";
     let mapInstance = null;
     let markerGroup = null;
@@ -469,7 +114,11 @@
     function getVoterKey() {
       let key = localStorage.getItem("safewalk_voter_key");
       if (!key) {
-        key = "voter_" + (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2));
+        key =
+          "voter_" +
+          (window.crypto && crypto.randomUUID
+            ? crypto.randomUUID()
+            : Math.random().toString(36).slice(2));
         localStorage.setItem("safewalk_voter_key", key);
       }
       return key;
@@ -495,6 +144,7 @@
           visibleOnMain: nowMs - decidedMs < TWENTY_MIN_MS,
           isResolved: true,
           pendingSeconds: 0,
+          shouldMarkResolved: false,
         };
       }
 
@@ -503,6 +153,7 @@
           visibleOnMain: false,
           isResolved: true,
           pendingSeconds: 0,
+          shouldMarkResolved: false,
         };
       }
 
@@ -511,6 +162,7 @@
           visibleOnMain: nowMs - createdMs < FIFTEEN_MIN_MS,
           isResolved: false,
           pendingSeconds: 0,
+          shouldMarkResolved: false,
         };
       }
 
@@ -522,6 +174,7 @@
           visibleOnMain: true,
           isResolved: false,
           pendingSeconds: Math.max(1, Math.ceil((THIRTY_MIN_MS - elapsed) / 1000)),
+          shouldMarkResolved: false,
         };
       }
 
@@ -538,15 +191,40 @@
         visibleOnMain: true,
         isResolved: false,
         pendingSeconds: 0,
+        shouldMarkResolved: false,
       };
     }
 
+    async function syncResolvedDecisions() {
+      if (!supabaseClient) return;
+      const nowIso = new Date().toISOString();
+
+      for (const item of allHazards) {
+        const st = computeState(item);
+        if (st.shouldMarkResolved && !item.is_resolved) {
+          item.is_resolved = true;
+          item.resolved_decided_at = nowIso;
+          await supabaseClient
+            .from("hazards")
+            .update({
+              is_resolved: true,
+              resolved_decided_at: nowIso,
+            })
+            .eq("id", item.id);
+        }
+      }
+    }
+
     function initMap() {
+      const mapEl = document.getElementById("map");
+      if (!mapEl || !window.L) return;
+
       mapInstance = L.map("map").setView([13.7138, 100.5364], 16);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "© OpenStreetMap",
       }).addTo(mapInstance);
+
       markerGroup = L.layerGroup().addTo(mapInstance);
     }
 
@@ -557,9 +235,9 @@
         className: "safewalk-custom-pin",
         html: `<div style="
           width:28px;height:28px;border-radius:50%;
-          background:${bg};color:#fff;font-weight:800;font-size:14px;
+          background:${bg};color:#ffffff;font-weight:800;font-size:14px;
           display:flex;align-items:center;justify-content:center;
-          border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.35);
+          border:2px solid #ffffff;box-shadow:0 2px 6px rgba(0,0,0,0.35);
         ">${text}</div>`,
         iconSize: [28, 28],
         iconAnchor: [14, 14],
@@ -570,9 +248,10 @@
       const nowMs = Date.now();
       return allHazards.filter((item) => {
         const st = computeState(item, nowMs);
+
         const matchesStatus =
           currentStatusFilter === "resolved"
-            ? st.isResolved
+            ? st.isResolved && st.visibleOnMain
             : currentStatusFilter === "active"
             ? !st.isResolved && st.visibleOnMain
             : st.visibleOnMain;
@@ -592,36 +271,44 @@
 
       allHazards.forEach((item) => {
         const st = computeState(item, nowMs);
-        if (st.isResolved) {
+        if (st.isResolved && st.visibleOnMain) {
           resolvedCount += 1;
-        } else if (st.visibleOnMain) {
+        } else if (!st.isResolved && st.visibleOnMain) {
           activeCount += 1;
         }
       });
 
-      document.getElementById("statActiveNum").textContent = activeCount;
-      document.getElementById("statResolvedNum").textContent = resolvedCount;
-      document.getElementById("activeCountBadge").textContent = activeCount;
+      const activeEl = document.getElementById("statActiveNum");
+      const resolvedEl = document.getElementById("statResolvedNum");
+      const badgeEl = document.getElementById("activeCountBadge");
 
-      document.getElementById("cardActiveStatus").classList.toggle("selected", currentStatusFilter === "active");
-      document.getElementById("cardResolvedStatus").classList.toggle("selected", currentStatusFilter === "resolved");
+      if (activeEl) activeEl.textContent = activeCount;
+      if (resolvedEl) resolvedEl.textContent = resolvedCount;
+      if (badgeEl) badgeEl.textContent = activeCount;
+
+      const activeCard = document.getElementById("cardActiveStatus");
+      const resolvedCard = document.getElementById("cardResolvedStatus");
+      if (activeCard) activeCard.classList.toggle("selected", currentStatusFilter === "active");
+      if (resolvedCard) resolvedCard.classList.toggle("selected", currentStatusFilter === "resolved");
 
       const banner = document.getElementById("activeFilterBanner");
       const label = document.getElementById("activeFilterLabel");
-      const statusText =
-        currentStatusFilter === "resolved"
-          ? "หมุดที่แก้ไขแล้ว"
-          : currentStatusFilter === "active"
-          ? "หมุดที่กำลังดำเนินการ"
-          : "ทั้งหมด";
-      const catText =
-        currentCategoryFilter === "all"
-          ? "ทุกหมวดหมู่"
-          : CATEGORY_LABELS[currentCategoryFilter] || currentCategoryFilter;
+      if (banner && label) {
+        const statusText =
+          currentStatusFilter === "resolved"
+            ? "หมุดที่แก้ไขแล้ว"
+            : currentStatusFilter === "active"
+            ? "หมุดที่กำลังดำเนินการ"
+            : "ทั้งหมด";
+        const catText =
+          currentCategoryFilter === "all"
+            ? "ทุกหมวดหมู่"
+            : CATEGORY_LABELS[currentCategoryFilter] || currentCategoryFilter;
 
-      const isFiltered = currentStatusFilter !== "all" || currentCategoryFilter !== "all";
-      banner.classList.toggle("show", isFiltered);
-      label.textContent = `กำลังแสดง: ${statusText} · ${catText}`;
+        const isFiltered = currentStatusFilter !== "all" || currentCategoryFilter !== "all";
+        banner.classList.toggle("show", isFiltered);
+        label.textContent = `กำลังแสดง: ${statusText} · ${catText}`;
+      }
     }
 
     function renderMap() {
@@ -652,8 +339,9 @@
 
     function renderList() {
       const container = document.getElementById("hazardListContainer");
-      const items = getFilteredItems();
+      if (!container) return;
 
+      const items = getFilteredItems();
       if (items.length === 0) {
         container.innerHTML = `<div class="hazard-card"><div class="card-sub">ไม่มีรายการตามตัวกรองที่เลือก</div></div>`;
         return;
@@ -670,7 +358,7 @@
           return `
             <div class="hazard-card">
               <div class="card-top">
-                <div class="card-title">${CATEGORY_LABELS[item.category] || item.category}</div>
+                <div class="card-title">${CATEGORY_LABELS[item.category] || item.category || "จุดเสี่ยง"}</div>
                 <span class="status-tag ${st.isResolved ? "resolved" : "unresolved"}">
                   ${st.isResolved ? "แก้ไขแล้ว" : "กำลังดำเนินการ"}
                 </span>
@@ -722,13 +410,13 @@
 
     function switchTab(tabName) {
       currentTab = tabName;
-      document.getElementById("mapSection").classList.toggle("hidden", tabName !== "map");
-      document.getElementById("listSection").classList.toggle("hidden", tabName !== "list");
-      document.getElementById("guideSection").classList.toggle("hidden", tabName !== "guide");
+      document.getElementById("mapSection")?.classList.toggle("hidden", tabName !== "map");
+      document.getElementById("listSection")?.classList.toggle("hidden", tabName !== "list");
+      document.getElementById("guideSection")?.classList.toggle("hidden", tabName !== "guide");
 
-      document.getElementById("tabMapBtn").classList.toggle("active", tabName === "map");
-      document.getElementById("tabListBtn").classList.toggle("active", tabName === "list");
-      document.getElementById("tabGuideBtn").classList.toggle("active", tabName === "guide");
+      document.getElementById("tabMapBtn")?.classList.toggle("active", tabName === "map");
+      document.getElementById("tabListBtn")?.classList.toggle("active", tabName === "list");
+      document.getElementById("tabGuideBtn")?.classList.toggle("active", tabName === "guide");
 
       if (tabName === "map" && mapInstance) {
         setTimeout(() => mapInstance.invalidateSize(), 120);
@@ -763,6 +451,7 @@
           voter_key: getVoterKey(),
           vote_choice: choice,
         });
+
         await supabaseClient
           .from("hazards")
           .update({
@@ -779,6 +468,7 @@
         refreshAllUI();
         return;
       }
+
       const { data, error } = await supabaseClient
         .from("hazards")
         .select("*")
@@ -786,51 +476,59 @@
 
       if (!error && Array.isArray(data)) {
         allHazards = data;
+        await syncResolvedDecisions();
       }
       refreshAllUI();
     }
 
-    document.getElementById("tabMapBtn").addEventListener("click", () => switchTab("map"));
-    document.getElementById("tabListBtn").addEventListener("click", () => switchTab("list"));
-    document.getElementById("tabGuideBtn").addEventListener("click", () => switchTab("guide"));
+    function bindEvents() {
+      document.getElementById("tabMapBtn")?.addEventListener("click", () => switchTab("map"));
+      document.getElementById("tabListBtn")?.addEventListener("click", () => switchTab("list"));
+      document.getElementById("tabGuideBtn")?.addEventListener("click", () => switchTab("guide"));
 
-    document.getElementById("cardActiveStatus").addEventListener("click", () => {
-      currentStatusFilter = currentStatusFilter === "active" ? "all" : "active";
-      switchTab("map");
-      refreshAllUI();
-    });
-
-    document.getElementById("cardResolvedStatus").addEventListener("click", () => {
-      currentStatusFilter = currentStatusFilter === "resolved" ? "all" : "resolved";
-      switchTab("map");
-      refreshAllUI();
-    });
-
-    document.querySelectorAll("#categoryFilterBar .cat-chip").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        document.querySelectorAll("#categoryFilterBar .cat-chip").forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        currentCategoryFilter = btn.dataset.category || "all";
+      document.getElementById("cardActiveStatus")?.addEventListener("click", () => {
+        currentStatusFilter = currentStatusFilter === "active" ? "all" : "active";
+        switchTab("map");
         refreshAllUI();
       });
-    });
 
-    document.getElementById("resetFilterBtn").addEventListener("click", () => {
-      currentStatusFilter = "all";
-      currentCategoryFilter = "all";
-      document.querySelectorAll("#categoryFilterBar .cat-chip").forEach((b) => {
-        b.classList.toggle("active", b.dataset.category === "all");
+      document.getElementById("cardResolvedStatus")?.addEventListener("click", () => {
+        currentStatusFilter = currentStatusFilter === "resolved" ? "all" : "resolved";
+        switchTab("map");
+        refreshAllUI();
       });
-      refreshAllUI();
-    });
 
-    document.getElementById("themeToggleBtn").addEventListener("click", () => {
-      document.body.classList.toggle("dark-mode");
-    });
+      document.querySelectorAll("#categoryFilterBar .cat-chip").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll("#categoryFilterBar .cat-chip")
+            .forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          currentCategoryFilter = btn.dataset.category || "all";
+          refreshAllUI();
+        });
+      });
+
+      document.getElementById("resetFilterBtn")?.addEventListener("click", () => {
+        currentStatusFilter = "all";
+        currentCategoryFilter = "all";
+        document.querySelectorAll("#categoryFilterBar .cat-chip").forEach((b) => {
+          b.classList.toggle("active", b.dataset.category === "all");
+        });
+        refreshAllUI();
+      });
+
+      document.getElementById("themeToggleBtn")?.addEventListener("click", () => {
+        document.body.classList.toggle("dark-mode");
+      });
+    }
 
     initMap();
+    bindEvents();
     loadHazardsFromSupabase();
-    setInterval(refreshAllUI, 20000);
+    setInterval(() => {
+      syncResolvedDecisions().then(refreshAllUI);
+    }, 20000);
   </script>
 </body>
 </html>
