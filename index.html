@@ -21,9 +21,7 @@
           <div class="brand-sub">มทร.กรุงเทพ · โหมดติดตามสถานะ</div>
         </div>
       </div>
-      <div class="header-actions">
-        <button id="themeToggleBtn" class="pill-btn" type="button">🌙 โหมดกลางคืน</button>
-      </div>
+      <button id="themeToggleBtn" class="pill-btn" type="button">🌙 โหมดกลางคืน</button>
     </div>
 
     <div class="nav-tabs">
@@ -34,29 +32,24 @@
       <button id="tabGuideBtn" class="nav-tab" type="button">📖 คู่มือใช้เว็บ</button>
     </div>
 
-    <div class="summary-grid">
-      <button id="cardActiveStatus" class="summary-card" type="button">
-        <div id="statActiveNum" class="summary-num danger">0</div>
-        <div class="summary-label">กำลังดำเนินการ</div>
-      </button>
-      <button id="cardResolvedStatus" class="summary-card" type="button">
-        <div id="statResolvedNum" class="summary-num success">0</div>
-        <div class="summary-label">แก้ไขแล้ว</div>
-      </button>
-    </div>
-
-    <div id="activeFilterBanner" class="active-filter-banner">
-      <span id="activeFilterLabel">กำลังแสดง: ทั้งหมด</span>
-      <button id="resetFilterBtn" class="reset-link-btn" type="button">แสดงทั้งหมด</button>
-    </div>
-
     <!-- หน้าแผนที่: โล่งๆ เหลือเฉพาะแผนที่ -->
     <section id="mapSection">
       <div id="map"></div>
     </section>
 
-    <!-- หน้าเรื่องที่คนแจ้งเข้ามา: มีปุ่มกรองหมวดหมู่และการ์ดรายการ -->
+    <!-- หน้าเรื่องที่คนแจ้งเข้ามา: มี 2 กล่องสรุป + ปุ่มกรองหมวดหมู่ + แถบแจ้งตัวกรอง + การ์ดรายการ -->
     <section id="listSection" class="hidden">
+      <div class="summary-grid">
+        <button id="cardActiveStatus" class="summary-card" type="button">
+          <div id="statActiveNum" class="summary-num danger">0</div>
+          <div class="summary-label">กำลังดำเนินการ</div>
+        </button>
+        <button id="cardResolvedStatus" class="summary-card" type="button">
+          <div id="statResolvedNum" class="summary-num success">0</div>
+          <div class="summary-label">แก้ไขแล้ว</div>
+        </button>
+      </div>
+
       <div id="categoryFilterBar" class="filter-scroll">
         <button class="cat-chip active" data-category="all" type="button">ทั้งหมด</button>
         <button class="cat-chip" data-category="smoke" type="button">🚬 ควันบุหรี่</button>
@@ -64,6 +57,12 @@
         <button class="cat-chip" data-category="block" type="button">🚧 กีดขวาง</button>
         <button class="cat-chip" data-category="other" type="button">⚠️ อื่นๆ</button>
       </div>
+
+      <div id="activeFilterBanner" class="active-filter-banner">
+        <span id="activeFilterLabel">กำลังแสดง: ทั้งหมด</span>
+        <button id="resetFilterBtn" class="reset-link-btn" type="button">แสดงทั้งหมด</button>
+      </div>
+
       <div id="hazardListContainer"></div>
     </section>
 
