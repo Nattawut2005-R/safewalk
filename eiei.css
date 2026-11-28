@@ -271,7 +271,8 @@ body {
   z-index: 1;
 }
 
-.safewalk-custom-pin {
+.safewalk-custom-pin,
+.safewalk-user-dot {
   background: transparent !important;
   border: none !important;
 }
