@@ -1,44 +1,102 @@
 import base64
 import hashlib
 import hmac
-import math
 import os
 import time
 import uuid
-from datetime import datetime, timezone
-
+import boto3
 import requests
 from flask import Flask, jsonify, request
-from supabase import create_client
+from supabase import Client, create_client
 
 app = Flask(__name__)
 
-# ค่า Environment Variables (นำไปตั้งค่าในหน้า Render -> Environment)
-LINE_CHANNEL_SECRET = os.environ.get("LINE_CHANNEL_SECRET", "").strip()
-LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://cysxdienifyupfunevfs.supabase.co").strip()
-SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()
+# --- Environment Variables ---
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY = (
+    os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    or os.environ.get("SUPABASE_ANON_KEY")
+    or os.environ.get("SUPABASE_KEY", "")
+)
 
-supabase = None
-if SUPABASE_URL.startswith("http") and SUPABASE_SERVICE_KEY:
-    try:
-        supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-    except Exception as exc:
-        print("Supabase init warning:", exc)
+LINE_CHANNEL_ACCESS_TOKEN = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN", "")
+LINE_CHANNEL_SECRET = os.environ.get("LINE_CHANNEL_SECRET", "")
 
-# เก็บสถานะชั่วคราวของผู้ใช้แต่ละคนในแชต LINE
-user_sessions = {}
+R2_ACCOUNT_ID = os.environ.get("R2_ACCOUNT_ID", "")
+R2_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID", "")
+R2_SECRET_ACCESS_KEY = os.environ.get("R2_SECRET_ACCESS_KEY", "")
+R2_BUCKET_NAME = os.environ.get("R2_BUCKET_NAME", "safewalk-images")
+R2_PUBLIC_BASE_URL = os.environ.get("R2_PUBLIC_BASE_URL", "").rstrip("/")
 
-CATEGORY_LABELS = {
+DEFAULT_LAT = 13.7138
+DEFAULT_LNG = 100.5364
+
+CATEGORY_MAP = {
+    "ควันบุหรี่": "smoke",
+    "สูบบุหรี่ในพื้นที่ห้ามสูบ": "smoke",
+    "บุหรี่": "smoke",
+    "smoke": "smoke",
+    "ไฟทางดับ": "dark",
+    "ไฟทางดับ / ทางเดินมืด": "dark",
+    "ทางมืด": "dark",
+    "dark": "dark",
+    "กีดขวาง": "block",
+    "ขายของปิดถนน / ตั้งเต็นท์": "block",
+    "ปิดถนน": "block",
+    "ตั้งเต็นท์": "block",
+    "block": "block",
+    "อื่นๆ": "other",
+    "other": "other",
+}
+
+CATEGORY_THAI_LABEL = {
     "smoke": "สูบบุหรี่ในพื้นที่ห้ามสูบ",
     "dark": "ไฟทางดับ / ทางเดินมืด",
     "block": "ขายของปิดถนน / ตั้งเต็นท์",
     "other": "อื่นๆ",
 }
 
+supabase: Client | None = None
+if SUPABASE_URL and SUPABASE_KEY:
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+s3_r2 = None
+if R2_ACCOUNT_ID and R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY:
+    s3_r2 = boto3.client(
+        "s3",
+        endpoint_url=f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com",
+        aws_access_key_id=R2_ACCESS_KEY_ID,
+        aws_secret_access_key=R2_SECRET_ACCESS_KEY,
+        region_name="auto",
+    )
+
+# สถานะการแจ้งเหตุต่อ user_id:
+# step: "intro_photo" -> "waiting_details" -> "done"
+sessions: dict[str, dict] = {}
+
+
+def generate_hazard_id() -> str:
+    return f"RMUTK-{uuid.uuid4().hex[:6].upper()}"
+
+
+def get_session(user_id: str) -> dict:
+    if user_id not in sessions:
+        sessions[user_id] = {
+            "step": "intro_photo",
+            "category": "other",
+            "description": "",
+            "lat": None,
+            "lng": None,
+            "image_url": None,
+            "created_id": None,
+        }
+    return sessions[user_id]
+
 
 def verify_line_signature(body_bytes: bytes, signature: str) -> bool:
-    if not LINE_CHANNEL_SECRET or not signature:
+    if not LINE_CHANNEL_SECRET:
+        return True
+    if not signature:
         return False
     digest = hmac.new(
         LINE_CHANNEL_SECRET.encode("utf-8"),
@@ -49,22 +107,12 @@ def verify_line_signature(body_bytes: bytes, signature: str) -> bool:
     return hmac.compare_digest(expected, signature)
 
 
-def distance_meters(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
-    r = 6371000.0
-    d_lat = math.radians(lat2 - lat1)
-    d_lng = math.radians(lng2 - lng1)
-    a = (
-        math.sin(d_lat / 2) ** 2
-        + math.cos(math.radians(lat1))
-        * math.cos(math.radians(lat2))
-        * math.sin(d_lng / 2) ** 2
-    )
-    return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-
-def reply_line_message(reply_token: str, messages: list):
-    if not LINE_CHANNEL_ACCESS_TOKEN or not reply_token:
+def send_line_message(reply_token: str, text: str, quick_items: list[dict] | None = None) -> None:
+    if not reply_token or not LINE_CHANNEL_ACCESS_TOKEN:
         return
+    message_obj: dict = {"type": "text", "text": text}
+    if quick_items:
+        message_obj["quickReply"] = {"items": quick_items}
     try:
         requests.post(
             "https://api.line.me/v2/bot/message/reply",
@@ -72,292 +120,275 @@ def reply_line_message(reply_token: str, messages: list):
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {LINE_CHANNEL_ACCESS_TOKEN}",
             },
-            json={"replyToken": reply_token, "messages": messages},
+            json={
+                "replyToken": reply_token,
+                "messages": [message_obj],
+            },
             timeout=10,
         )
     except Exception as exc:
-        print("LINE reply error:", exc)
+        print("[LINE reply error]:", exc)
 
 
-def category_quick_reply_message(text: str) -> dict:
-    return {
-        "type": "text",
-        "text": text,
-        "quickReply": {
-            "items": [
-                {
-                    "type": "action",
-                    "action": {"type": "message", "label": "🚬 ควันบุหรี่", "text": "แจ้ง:ควันบุหรี่"},
-                },
-                {
-                    "type": "action",
-                    "action": {"type": "message", "label": "💡 ไฟทางดับ", "text": "แจ้ง:ไฟทางดับ"},
-                },
-                {
-                    "type": "action",
-                    "action": {"type": "message", "label": "🚧 กีดขวาง", "text": "แจ้ง:กีดขวาง"},
-                },
-                {
-                    "type": "action",
-                    "action": {"type": "message", "label": "⚠️ อื่นๆ", "text": "แจ้ง:อื่นๆ"},
-                },
-                {
-                    "type": "action",
-                    "action": {"type": "location", "label": "📍 ส่งตำแหน่ง GPS"},
-                },
-            ]
+def photo_choice_quick_reply() -> list[dict]:
+    return [
+        {
+            "type": "action",
+            "action": {
+                "type": "cameraRoll",
+                "label": "แนบรูป",
+            },
         },
-    }
-
-
-def location_quick_reply_message(text: str) -> dict:
-    return {
-        "type": "text",
-        "text": text,
-        "quickReply": {
-            "items": [
-                {
-                    "type": "action",
-                    "action": {"type": "location", "label": "📍 กดส่งตำแหน่ง Location"},
-                },
-                {
-                    "type": "action",
-                    "action": {"type": "message", "label": "🔄 เปลี่ยนหมวดหมู่", "text": "เริ่มแจ้งเหตุ"},
-                },
-            ]
+        {
+            "type": "action",
+            "action": {
+                "type": "message",
+                "label": "ไม่แนบรูป",
+                "text": "ไม่แนบรูป",
+            },
         },
-    }
+    ]
 
 
-def save_hazard_to_supabase(
-    category: str,
-    lat: float,
-    lng: float,
-    description: str,
-    image_url: str = "",
-):
+def category_quick_reply() -> list[dict]:
+    labels = ["ควันบุหรี่", "ไฟทางดับ", "กีดขวาง", "อื่นๆ"]
+    return [
+        {
+            "type": "action",
+            "action": {
+                "type": "message",
+                "label": lbl,
+                "text": lbl,
+            },
+        }
+        for lbl in labels
+    ]
+
+
+def upload_line_image_to_r2(message_id: str) -> str:
+    if not s3_r2 or not R2_PUBLIC_BASE_URL:
+        raise RuntimeError("ยังไม่ได้ตั้งค่า R2 ให้ครบถ้วน")
+
+    content_url = f"https://api-data.line.me/v2/bot/message/{message_id}/content"
+    headers = {"Authorization": f"Bearer {LINE_CHANNEL_ACCESS_TOKEN}"}
+    resp = requests.get(content_url, headers=headers, timeout=20)
+    resp.raise_for_status()
+
+    content_type = (resp.headers.get("Content-Type") or "image/jpeg").split(";")[0].strip()
+    ext = "jpg"
+    if "png" in content_type:
+        ext = "png"
+    elif "webp" in content_type:
+        ext = "webp"
+    elif "gif" in content_type:
+        ext = "gif"
+
+    key = f"hazards/line-{int(time.time())}-{uuid.uuid4().hex[:8]}.{ext}"
+    s3_r2.put_object(
+        Bucket=R2_BUCKET_NAME,
+        Key=key,
+        Body=resp.content,
+        ContentType=content_type,
+    )
+    return f"{R2_PUBLIC_BASE_URL}/{key}"
+
+
+def insert_hazard(session: dict) -> str:
     if not supabase:
-        raise RuntimeError("Supabase client ยังไม่ได้เชื่อมต่อ (ตรวจ SUPABASE_URL และ SUPABASE_SERVICE_KEY ใน Render)")
+        raise RuntimeError("ยังไม่ได้ตั้งค่า SUPABASE_URL หรือ SUPABASE_KEY")
 
-    now_iso = datetime.now(timezone.utc).isoformat()
-    existing_rows = (
-        supabase.table("hazards")
-        .select("*")
-        .eq("category", category)
-        .eq("is_resolved", False)
-        .execute()
-        .data
-        or []
+    hazard_id = generate_hazard_id()
+    lat = float(session["lat"]) if session.get("lat") is not None else DEFAULT_LAT
+    lng = float(session["lng"]) if session.get("lng") is not None else DEFAULT_LNG
+    cat = session.get("category") or "other"
+    desc = (session.get("description") or "").strip() or CATEGORY_THAI_LABEL.get(cat, "แจ้งจุดเสี่ยง")
+
+    payload = {
+        "id": hazard_id,
+        "category": cat,
+        "description": desc,
+        "lat": lat,
+        "lng": lng,
+        "image_url": session.get("image_url"),
+        "is_resolved": False,
+        "resolved_votes": 0,
+        "unresolved_votes": 0,
+    }
+    res = supabase.table("hazards").insert(payload).execute()
+    if getattr(res, "error", None):
+        raise RuntimeError(str(res.error))
+    return hazard_id
+
+
+def update_hazard_fields(hazard_id: str, fields: dict) -> None:
+    if not supabase or not hazard_id:
+        return
+    res = supabase.table("hazards").update(fields).eq("id", hazard_id).execute()
+    if getattr(res, "error", None):
+        raise RuntimeError(str(res.error))
+
+
+def ask_first_photo_prompt(reply_token: str) -> None:
+    send_line_message(
+        reply_token,
+        "คุณสามารถแจ้งเหตุที่พบ ใน มทรกรุงเทพได้เลยครับ สามารถส่งรูปเข้ามาได้เลยครับ",
+        quick_items=photo_choice_quick_reply(),
     )
 
-    near_item = None
-    for row in existing_rows:
-        dist = distance_meters(float(row["lat"]), float(row["lng"]), lat, lng)
-        if dist <= 25.0:
-            near_item = row
-            break
 
-    if near_item:
-        next_count = int(near_item.get("report_count") or 1) + 1
-        old_desc = (near_item.get("description") or "").strip()
-        new_desc = f"{old_desc} • {description}".strip(" •") if description else old_desc
+def ask_next_step_prompt(reply_token: str, prefix: str = "") -> None:
+    body = (
+        f"{prefix}\n" if prefix else ""
+    ) + "กรุณาส่งตำแหน่งที่ตั้ง (Location) และเลือกเรื่องที่จะแจ้งครับ (หรือพิมพ์รายละเอียดเพิ่มเติมได้เลย)"
+    send_line_message(reply_token, body, quick_items=category_quick_reply())
 
-        update_payload = {
-            "report_count": next_count,
-            "description": new_desc,
-            "created_at": now_iso,
+
+def process_event(event: dict) -> None:
+    if event.get("type") != "message":
+        return
+
+    user_id = (event.get("source") or {}).get("userId")
+    if not user_id:
+        return
+
+    reply_token = event.get("replyToken", "")
+    msg = event.get("message") or {}
+    msg_type = msg.get("type")
+    sess = get_session(user_id)
+
+    if sess.get("step") == "done":
+        sessions[user_id] = {
+            "step": "intro_photo",
+            "category": "other",
+            "description": "",
+            "lat": None,
+            "lng": None,
+            "image_url": None,
+            "created_id": None,
         }
-        if image_url and not near_item.get("image_url"):
-            update_payload["image_url"] = image_url
+        sess = sessions[user_id]
+        ask_first_photo_prompt(reply_token)
+        return
 
-        supabase.table("hazards").update(update_payload).eq("id", near_item["id"]).execute()
-        return near_item["id"], True
+    # 1) ผู้ใช้ส่งรูปภาพ
+    if msg_type == "image":
+        try:
+            image_url = upload_line_image_to_r2(msg.get("id", ""))
+            sess["image_url"] = image_url
+            if sess.get("created_id"):
+                update_hazard_fields(sess["created_id"], {"image_url": image_url})
+            sess["step"] = "waiting_details"
+            ask_next_step_prompt(reply_token, "รับรูปภาพเรียบร้อยแล้วครับ")
+        except Exception as exc:
+            print("[R2 upload error]:", exc)
+            sess["step"] = "waiting_details"
+            ask_next_step_prompt(
+                reply_token,
+                "อัปโหลดรูปไม่สำเร็จ แต่ดำเนินการแจ้งเหตุต่อได้ตามปกติครับ",
+            )
+        return
 
-    new_id = f"HZ-LINE-{int(time.time() * 1000) % 1000000:06d}-{uuid.uuid4().hex[:3].upper()}"
-    supabase.table("hazards").insert(
-        {
-            "id": new_id,
-            "category": category,
-            "lat": lat,
-            "lng": lng,
-            "description": description or f"แจ้งผ่าน LINE: {CATEGORY_LABELS.get(category, category)}",
-            "image_url": image_url,
-            "report_count": 1,
-            "not_fixed_count": 0,
-            "is_iot_alert": False,
-            "is_resolved": False,
-            "resolved_at": None,
-            "created_at": now_iso,
-        }
-    ).execute()
-    return new_id, False
+    # 2) ผู้ใช้ส่งตำแหน่งที่ตั้ง (Location) -> บันทึกลงหมุดและแจ้งรหัส
+    if msg_type == "location":
+        sess["lat"] = msg.get("latitude", DEFAULT_LAT)
+        sess["lng"] = msg.get("longitude", DEFAULT_LNG)
+        addr = (msg.get("address") or "").strip()
+        if addr and not sess.get("description"):
+            sess["description"] = addr
+
+        try:
+            if not sess.get("created_id"):
+                hazard_id = insert_hazard(sess)
+                sess["created_id"] = hazard_id
+            else:
+                hazard_id = sess["created_id"]
+                update_hazard_fields(
+                    hazard_id,
+                    {
+                        "lat": float(sess["lat"]),
+                        "lng": float(sess["lng"]),
+                        "description": sess.get("description") or CATEGORY_THAI_LABEL.get(sess["category"], "แจ้งจุดเสี่ยง"),
+                        "image_url": sess.get("image_url"),
+                    },
+                )
+            cat_label = CATEGORY_THAI_LABEL.get(sess["category"], "อื่นๆ")
+            send_line_message(
+                reply_token,
+                f"ปักหมุดจุดเสี่ยงใหม่ รหัส {hazard_id} ลงแผนที่เรียบร้อยแล้วครับ ✅\nหมวดหมู่: {cat_label}\nสามารถเลือกหมวดหมู่หรือพิมพ์รายละเอียดเพิ่มเติมได้เลยครับ",
+                quick_items=category_quick_reply(),
+            )
+        except Exception as exc:
+            print("[Supabase save error]:", exc)
+            send_line_message(reply_token, f"บันทึกลงระบบไม่สำเร็จ: {exc}")
+        return
+
+    # 3) ผู้ใช้ส่งข้อความ
+    if msg_type == "text":
+        text = (msg.get("text") or "").strip()
+        lower = text.lower()
+
+        if sess.get("step") == "intro_photo":
+            if text in ("ไม่แนบรูป", "ข้าม", "ไม่ส่งรูป"):
+                sess["image_url"] = None
+                sess["step"] = "waiting_details"
+                ask_next_step_prompt(reply_token, "รับทราบครับ ไม่แนบรูปภาพ")
+                return
+            if lower in CATEGORY_MAP:
+                sess["category"] = CATEGORY_MAP[lower]
+                sess["step"] = "waiting_details"
+                ask_next_step_prompt(reply_token, f"เลือกเรื่อง \"{text}\" แล้วครับ")
+                return
+            if text in ("เริ่มแจ้ง", "แจ้งเหตุ", "สวัสดี", "เมนู"):
+                ask_first_photo_prompt(reply_token)
+                return
+
+            ask_first_photo_prompt(reply_token)
+            return
+
+        if lower in CATEGORY_MAP:
+            sess["category"] = CATEGORY_MAP[lower]
+            if sess.get("created_id"):
+                try:
+                    update_hazard_fields(sess["created_id"], {"category": sess["category"]})
+                except Exception as exc:
+                    print("[Supabase category update error]:", exc)
+            send_line_message(
+                reply_token,
+                f"บันทึกเรื่อง \"{CATEGORY_THAI_LABEL[sess['category']]}\" แล้วครับ\nหากยังไม่ได้ส่งตำแหน่ง สามารถส่ง Location มาได้เลยครับ",
+                quick_items=category_quick_reply(),
+            )
+            return
+
+        if text:
+            sess["description"] = text
+            if sess.get("created_id"):
+                try:
+                    update_hazard_fields(sess["created_id"], {"description": text})
+                except Exception as exc:
+                    print("[Supabase description update error]:", exc)
+            send_line_message(
+                reply_token,
+                "บันทึกรายละเอียดเพิ่มเติมเรียบร้อยแล้วครับ ✅",
+                quick_items=category_quick_reply(),
+            )
 
 
-@app.route("/", methods=["GET"])
-def index():
-    return jsonify(
-        {
-            "service": "RMUTK SafeWalk LINE Bot",
-            "status": "running",
-            "supabase_connected": bool(supabase),
-        }
-    ), 200
-
-
-@app.route("/health", methods=["GET"])
+@app.get("/health")
 def health():
-    return "OK", 200
+    return jsonify({"status": "ok"}), 200
 
 
-@app.route("/webhook/line", methods=["POST"])
-def line_webhook():
+@app.post("/webhook")
+def webhook():
     signature = request.headers.get("X-Line-Signature", "")
     raw_body = request.get_data()
 
     if not verify_line_signature(raw_body, signature):
-        return "Invalid signature", 403
+        return jsonify({"error": "Invalid signature"}), 401
 
     payload = request.get_json(silent=True) or {}
-    events = payload.get("events", [])
-
-    for event in events:
-        event_type = event.get("type")
-        reply_token = event.get("replyToken")
-        user_id = event.get("source", {}).get("userId", "anonymous")
-
-        session = user_sessions.setdefault(
-            user_id,
-            {"category": "smoke", "pending_note": "", "last_hazard_id": None},
-        )
-
-        if event_type == "follow":
-            reply_line_message(
-                reply_token,
-                [
-                    category_quick_reply_message(
-                        "ยินดีต้อนรับสู่ RMUTK SafeWalk ระบบแจ้งเตือนจุดเสี่ยง มทร.กรุงเทพ\nเลือกหมวดหมู่ที่ต้องการแจ้งด้านล่างได้เลยครับ 👇"
-                    )
-                ],
-            )
-            continue
-
-        if event_type != "message":
-            continue
-
-        msg = event.get("message", {})
-        msg_type = msg.get("type")
-
-        if msg_type == "text":
-            text = (msg.get("text") or "").strip()
-
-            if text in ("เริ่มแจ้งเหตุ", "แจ้งเหตุ", "สวัสดี", "เมนู"):
-                session["last_hazard_id"] = None
-                session["pending_note"] = ""
-                reply_line_message(
-                    reply_token,
-                    [category_quick_reply_message("เลือกหมวดหมู่จุดเสี่ยงที่พบใน มทร.กรุงเทพ ได้เลยครับ 👇")],
-                )
-
-            elif text == "แจ้ง:ควันบุหรี่":
-                session["category"] = "smoke"
-                session["last_hazard_id"] = None
-                reply_line_message(
-                    reply_token,
-                    [location_quick_reply_message("เลือกหมวด [🚬 ควันบุหรี่] แล้ว\nกดปุ่ม 📍 ด้านล่างเพื่อส่งตำแหน่ง Location ได้เลยครับ (หรือพิมพ์จุดสังเกตก่อนส่งตำแหน่งก็ได้)")],
-                )
-
-            elif text == "แจ้ง:ไฟทางดับ":
-                session["category"] = "dark"
-                session["last_hazard_id"] = None
-                reply_line_message(
-                    reply_token,
-                    [location_quick_reply_message("เลือกหมวด [💡 ไฟทางดับ] แล้ว\nกดปุ่ม 📍 ด้านล่างเพื่อส่งตำแหน่ง Location ได้เลยครับ")],
-                )
-
-            elif text == "แจ้ง:กีดขวาง":
-                session["category"] = "block"
-                session["last_hazard_id"] = None
-                reply_line_message(
-                    reply_token,
-                    [location_quick_reply_message("เลือกหมวด [🚧 กีดขวางทางเดิน] แล้ว\nกดปุ่ม 📍 ด้านล่างเพื่อส่งตำแหน่ง Location ได้เลยครับ")],
-                )
-
-            elif text == "แจ้ง:อื่นๆ":
-                session["category"] = "other"
-                session["last_hazard_id"] = None
-                reply_line_message(
-                    reply_token,
-                    [location_quick_reply_message("เลือกหมวด [⚠️ อื่นๆ] แล้ว\nกดปุ่ม 📍 ด้านล่างเพื่อส่งตำแหน่ง Location ได้เลยครับ")],
-                )
-
-            else:
-                if session.get("last_hazard_id") and supabase:
-                    target_id = session["last_hazard_id"]
-                    existing = supabase.table("hazards").select("description").eq("id", target_id).execute().data
-                    if existing:
-                        old_desc = (existing[0].get("description") or "").strip()
-                        updated_desc = f"{old_desc} ({text})" if old_desc else text
-                        supabase.table("hazards").update({"description": updated_desc}).eq("id", target_id).execute()
-
-                    reply_line_message(
-                        reply_token,
-                        [
-                            category_quick_reply_message(
-                                f"บันทึกรายละเอียดเพิ่มเติมให้รหัส {target_id} เรียบร้อยแล้วครับ ✅\nหากต้องการแจ้งจุดใหม่ เลือกหมวดด้านล่างได้เลย"
-                            )
-                        ],
-                    )
-                else:
-                    session["pending_note"] = text
-                    reply_line_message(
-                        reply_token,
-                        [
-                            location_quick_reply_message(
-                                f"รับทราบรายละเอียด: \"{text}\"\nต่อไปกดปุ่ม 📍 เพื่อส่งตำแหน่ง Location ใน มทร.กรุงเทพ ได้เลยครับ"
-                            )
-                        ],
-                    )
-
-        elif msg_type == "location":
-            lat = float(msg.get("latitude"))
-            lng = float(msg.get("longitude"))
-            address = (msg.get("address") or "").strip()
-            cat = session.get("category", "smoke")
-            note = (session.get("pending_note") or "").strip()
-
-            full_desc = " • ".join([part for part in [note, address] if part])
-            hazard_id, merged = save_hazard_to_supabase(cat, lat, lng, full_desc)
-
-            session["last_hazard_id"] = hazard_id
-            session["pending_note"] = ""
-
-            status_txt = (
-                f"รวมเข้ากับจุดใกล้เคียง (≤ 25 ม.) รหัส {hazard_id} เรียบร้อยแล้วครับ 🔄"
-                if merged
-                else f"ปักหมุดจุดเสี่ยงใหม่ รหัส {hazard_id} ลงแผนที่เรียบร้อยแล้วครับ ✅"
-            )
-
-            reply_line_message(
-                reply_token,
-                [
-                    category_quick_reply_message(
-                        f"{status_txt}\n"
-                        f"หมวดหมู่: {CATEGORY_LABELS.get(cat, cat)}\n"
-                        f"พิมพ์รายละเอียดเพิ่มเติมต่อได้เลย หรือดูแผนที่ได้ที่:\n"
-                        f"https://nattawut2005-r.github.io/safewalk/"
-                    )
-                ],
-            )
-
-        elif msg_type == "image":
-            reply_line_message(
-                reply_token,
-                [
-                    location_quick_reply_message(
-                        "ได้รับรูปภาพแล้วครับ 📸 (ระบบอัปโหลดรูป R2 กำลังเชื่อมต่อ)\nกรุณากดปุ่ม 📍 ส่งตำแหน่ง Location เพื่อบันทึกจุดลงแผนที่ได้เลยครับ"
-                    )
-                ],
-            )
+    for event in payload.get("events", []):
+        process_event(event)
 
     return jsonify({"status": "ok"}), 200
 
