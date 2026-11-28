@@ -1,561 +1,484 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RMUTK SafeWalk — หน้าผู้ดูแลระบบ (Admin)</title>
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    crossorigin=""
-  />
-  <link rel="stylesheet" href="eiei.css" />
-  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
-  <style>
-    #adminMap {
-      width: 100%;
-      height: 300px;
-      border-radius: 14px;
-      border: 1.5px solid var(--border);
-      margin-bottom: 10px;
-      z-index: 1;
-    }
+:root {
+  --bg: #f3f7f4;
+  --surface: #ffffff;
+  --surface-2: #eef5f0;
+  --text: #132219;
+  --muted: #5b6d62;
+  --primary: #15803d;
+  --primary-soft: #dcfce7;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --border: #cde0d3;
+  --shadow: 0 4px 14px rgba(19, 34, 25, 0.06);
+}
 
-    .form-grid-2 {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-top: 8px;
-    }
+body.dark-mode {
+  --bg: #0e1612;
+  --surface: #17231d;
+  --surface-2: #1f2f27;
+  --text: #e8f3ec;
+  --muted: #9bb3a5;
+  --primary: #22c55e;
+  --primary-soft: rgba(34, 197, 94, 0.15);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.15);
+  --border: #2a3e33;
+  --shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
 
-    .field-group {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      margin-top: 8px;
-    }
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
 
-    .field-label {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--muted);
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.4;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
 
-    .field-input,
-    .field-select {
-      width: 100%;
-      background: var(--surface-2);
-      color: var(--text);
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      padding: 7px 10px;
-      font-size: 12px;
-      font-family: inherit;
-    }
+iconify-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: -0.15em;
+  flex-shrink: 0;
+}
 
-    @media (max-width: 480px) {
-      .form-grid-2 {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header-card">
-      <div class="brand-left">
-        <div class="brand-logo">
-          <iconify-icon icon="lucide:shield-check" width="18"></iconify-icon>
-        </div>
-        <div>
-          <div class="brand-title">RMUTK SafeWalk Admin</div>
-          <div class="brand-sub">มทร.กรุงเทพ · ปักหมุดกำหนดช่วงวันและจัดการรายการ</div>
-        </div>
-      </div>
-      <div class="header-actions">
-        <a href="index.html" class="pill-btn">
-          <iconify-icon icon="lucide:arrow-left" width="14"></iconify-icon>
-          <span>หน้าแผนที่</span>
-        </a>
-        <button id="themeToggleBtn" class="pill-btn" type="button">
-          <iconify-icon id="themeToggleIcon" icon="lucide:moon" width="14"></iconify-icon>
-          <span id="themeToggleText">โหมดกลางคืน</span>
-        </button>
-      </div>
-    </div>
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 8px 10px 32px;
+}
 
-    <!-- กล่องปักหมุดบนแผนที่ + กำหนดวันเริ่มถึงวันสิ้นสุด -->
-    <div class="hazard-card">
-      <div class="card-title">
-        <iconify-icon icon="lucide:map-pin-plus" width="17"></iconify-icon>
-        <span>ปักหมุดจุดเสี่ยงและกำหนดช่วงวันแสดงผล</span>
-      </div>
-      <div class="card-sub" style="margin-top:4px;">
-        คลิกบนแผนที่เพื่อเลือกตำแหน่งปักหมุด แล้วตั้งค่าช่วงวันที่เริ่มแสดงผลถึงวันที่สิ้นสุด
-      </div>
+/* ส่วนหัวเว็บ */
+.header-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 8px 11px;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
 
-      <div id="adminMap" style="margin-top:10px;"></div>
+.brand-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
 
-      <div class="form-grid-2">
-        <div class="field-group" style="margin-top:0;">
-          <label class="field-label" for="adminLat">
-            <iconify-icon icon="lucide:compass" width="13"></iconify-icon>
-            <span>ละติจูด (Lat)</span>
-          </label>
-          <input id="adminLat" class="field-input" type="number" step="any" value="13.7138" />
-        </div>
-        <div class="field-group" style="margin-top:0;">
-          <label class="field-label" for="adminLng">
-            <iconify-icon icon="lucide:compass" width="13"></iconify-icon>
-            <span>ลองจิจูด (Lng)</span>
-          </label>
-          <input id="adminLng" class="field-input" type="number" step="any" value="100.5364" />
-        </div>
-      </div>
+.brand-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 16px;
+  flex-shrink: 0;
+}
 
-      <div class="form-grid-2">
-        <div class="field-group">
-          <label class="field-label" for="adminCategory">
-            <iconify-icon icon="lucide:tag" width="13"></iconify-icon>
-            <span>หมวดหมู่</span>
-          </label>
-          <select id="adminCategory" class="field-select">
-            <option value="smoke">ควันบุหรี่ (สูบบุหรี่ในพื้นที่ห้ามสูบ)</option>
-            <option value="dark">ไฟทางดับ (ไฟทางดับ / ทางเดินมืด)</option>
-            <option value="block" selected>กีดขวาง (ขายของปิดถนน / ตั้งเต็นท์)</option>
-            <option value="other">อื่นๆ</option>
-          </select>
-        </div>
-        <div class="field-group">
-          <label class="field-label" for="adminCode">
-            <iconify-icon icon="lucide:hash" width="13"></iconify-icon>
-            <span>รหัสอ้างอิง (เว้นว่างเพื่อสร้างอัตโนมัติ)</span>
-          </label>
-          <input id="adminCode" class="field-input" type="text" placeholder="เช่น HZ-ADM-514245" />
-        </div>
-      </div>
+.brand-title {
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1.25;
+}
 
-      <div class="field-group">
-        <label class="field-label" for="adminDesc">
-          <iconify-icon icon="lucide:file-text" width="13"></iconify-icon>
-          <span>รายละเอียดจุดเสี่ยง</span>
-        </label>
-        <input id="adminDesc" class="field-input" type="text" placeholder="เช่น ปิด งานลอยกระทง หรือจุดที่พบปัญหา" />
-      </div>
+.brand-sub {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-      <div class="form-grid-2">
-        <div class="field-group">
-          <label class="field-label" for="adminStartAt">
-            <iconify-icon icon="lucide:calendar-plus" width="13"></iconify-icon>
-            <span>ปักหมุดตั้งแต่วันที่ / เวลา</span>
-          </label>
-          <input id="adminStartAt" class="field-input" type="datetime-local" />
-        </div>
-        <div class="field-group">
-          <label class="field-label" for="adminEndAt">
-            <iconify-icon icon="lucide:calendar-x" width="13"></iconify-icon>
-            <span>ถึงวันที่ / เวลา</span>
-          </label>
-          <input id="adminEndAt" class="field-input" type="datetime-local" />
-        </div>
-      </div>
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
-      <div class="card-actions">
-        <button id="saveAdminPinBtn" class="action-btn picked" type="button">
-          <iconify-icon icon="lucide:pin" width="14"></iconify-icon>
-          <span>บันทึกหมุดลงฐานข้อมูล</span>
-        </button>
-      </div>
-    </div>
+.pill-btn {
+  background: var(--surface);
+  color: var(--text);
+  border: 1.5px solid var(--primary);
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-decoration: none;
+}
 
-    <div class="summary-grid">
-      <button id="adminFilterActive" class="summary-card" type="button">
-        <div id="adminActiveNum" class="summary-num danger">0</div>
-        <div class="summary-label">
-          <iconify-icon icon="lucide:alert-circle" width="14"></iconify-icon>
-          <span>กำลังดำเนินการ</span>
-        </div>
-      </button>
-      <button id="adminFilterResolved" class="summary-card" type="button">
-        <div id="adminResolvedNum" class="summary-num success">0</div>
-        <div class="summary-label">
-          <iconify-icon icon="lucide:check-circle-2" width="14"></iconify-icon>
-          <span>แก้ไขแล้ว</span>
-        </div>
-      </button>
-    </div>
+.pill-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+}
 
-    <div class="filter-scroll" id="adminCategoryBar">
-      <button class="cat-chip active" data-category="all" type="button">
-        <iconify-icon icon="lucide:layers" width="14"></iconify-icon>
-        <span>ทั้งหมด</span>
-      </button>
-      <button class="cat-chip" data-category="smoke" type="button">
-        <iconify-icon icon="lucide:cigarette" width="14"></iconify-icon>
-        <span>ควันบุหรี่</span>
-      </button>
-      <button class="cat-chip" data-category="dark" type="button">
-        <iconify-icon icon="lucide:lightbulb-off" width="14"></iconify-icon>
-        <span>ไฟทางดับ</span>
-      </button>
-      <button class="cat-chip" data-category="block" type="button">
-        <iconify-icon icon="lucide:construction" width="14"></iconify-icon>
-        <span>กีดขวาง</span>
-      </button>
-      <button class="cat-chip" data-category="other" type="button">
-        <iconify-icon icon="lucide:alert-triangle" width="14"></iconify-icon>
-        <span>อื่นๆ</span>
-      </button>
-    </div>
+/* แถบสลับหน้า 3 ปุ่ม */
+.nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
 
-    <div id="adminNotice" class="hazard-card hidden"></div>
-    <div id="adminListContainer"></div>
-  </div>
+.nav-tab {
+  flex: 1 1 auto;
+  background: var(--surface);
+  color: var(--text);
+  border: 1.5px solid var(--primary);
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  white-space: nowrap;
+}
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-config.js"></script>
-  <script>
-    const CATEGORY_LABELS = {
-      smoke: "สูบบุหรี่ในพื้นที่ห้ามสูบ",
-      dark: "ไฟทางดับ / ทางเดินมืด",
-      block: "ขายของปิดถนน / ตั้งเต็นท์",
-      other: "อื่นๆ",
-    };
+.nav-tab.active {
+  background: var(--primary-soft);
+  box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.16);
+}
 
-    const CATEGORY_ICONS = {
-      smoke: "lucide:cigarette",
-      dark: "lucide:lightbulb-off",
-      block: "lucide:construction",
-      other: "lucide:alert-triangle",
-    };
+.count-badge {
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 999px;
+  line-height: 1.2;
+}
 
-    let adminHazards = [];
-    let statusFilter = "all";
-    let categoryFilter = "all";
-    let adminMap = null;
-    let draftMarker = null;
+/* 2 กล่องสรุปสถานะในหน้า "เรื่องที่คนแจ้งเข้ามา" */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
 
-    function getDb() {
-      return typeof sbClient !== "undefined" && sbClient ? sbClient : null;
-    }
+.summary-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.15s ease, background-color 0.15s ease;
+  text-align: left;
+}
 
-    function showAdminNotice(msg, isError = true) {
-      const el = document.getElementById("adminNotice");
-      if (!el) return;
-      if (!msg) {
-        el.classList.add("hidden");
-        el.innerHTML = "";
-        return;
-      }
-      el.classList.remove("hidden");
-      el.innerHTML = `<div class="card-title" style="color:${isError ? "var(--danger)" : "var(--primary)"};">
-        <iconify-icon icon="${isError ? "lucide:alert-triangle" : "lucide:check-circle-2"}" width="16"></iconify-icon>
-        <span>${msg}</span>
-      </div>`;
-    }
+.summary-card:active {
+  transform: scale(0.99);
+}
 
-    function initAdminMap() {
-      const mapEl = document.getElementById("adminMap");
-      if (!mapEl || !window.L) return;
+.summary-card.selected {
+  border-width: 2px;
+  border-color: var(--primary);
+  background: var(--surface-2);
+}
 
-      const initLat = Number(document.getElementById("adminLat")?.value || 13.7138);
-      const initLng = Number(document.getElementById("adminLng")?.value || 100.5364);
+.summary-num {
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 2px;
+}
 
-      adminMap = L.map("adminMap").setView([initLat, initLng], 16);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "© OpenStreetMap",
-      }).addTo(adminMap);
+.summary-num.danger {
+  color: var(--danger);
+}
 
-      draftMarker = L.marker([initLat, initLng], { draggable: true }).addTo(adminMap);
+.summary-num.success {
+  color: var(--primary);
+}
 
-      draftMarker.on("dragend", () => {
-        const pt = draftMarker.getLatLng();
-        document.getElementById("adminLat").value = pt.lat.toFixed(6);
-        document.getElementById("adminLng").value = pt.lng.toFixed(6);
-      });
+.summary-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 
-      adminMap.on("click", (e) => {
-        const { lat, lng } = e.latlng;
-        draftMarker.setLatLng([lat, lng]);
-        document.getElementById("adminLat").value = lat.toFixed(6);
-        document.getElementById("adminLng").value = lng.toFixed(6);
-      });
+/* แถบกรองหมวดหมู่แนวนอน */
+.filter-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  scrollbar-width: none;
+}
 
-      const now = new Date();
-      const plus1Day = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-      const toLocalInput = (d) => {
-        const pad = (n) => String(n).padStart(2, "0");
-        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      };
-      const startInput = document.getElementById("adminStartAt");
-      const endInput = document.getElementById("adminEndAt");
-      if (startInput && !startInput.value) startInput.value = toLocalInput(now);
-      if (endInput && !endInput.value) endInput.value = toLocalInput(plus1Day);
-    }
+.filter-scroll::-webkit-scrollbar {
+  display: none;
+}
 
-    async function createAdminHazard() {
-      const db = getDb();
-      if (!db) {
-        showAdminNotice("ไม่พบการเชื่อมต่อ sbClient จาก supabase-config.js");
-        return;
-      }
+.cat-chip {
+  background: var(--surface);
+  color: var(--text);
+  border: 1.5px solid var(--primary);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
 
-      const lat = Number(document.getElementById("adminLat")?.value);
-      const lng = Number(document.getElementById("adminLng")?.value);
-      const category = document.getElementById("adminCategory")?.value || "other";
-      const description = (document.getElementById("adminDesc")?.value || "").trim();
-      const customId = (document.getElementById("adminCode")?.value || "").trim();
-      const startRaw = document.getElementById("adminStartAt")?.value;
-      const endRaw = document.getElementById("adminEndAt")?.value;
+.cat-chip.active {
+  background: var(--primary);
+  color: #ffffff;
+}
 
-      if (Number.isNaN(lat) || Number.isNaN(lng)) {
-        showAdminNotice("กรุณาเลือกหรือกรอกพิกัดละติจูด/ลองจิจูดให้ถูกต้อง");
-        return;
-      }
+.filter-scroll [data-category="resolved"],
+.filter-scroll [data-filter="resolved"],
+.filter-resolved-btn {
+  display: none !important;
+}
 
-      const randomCode = "HZ-ADM-" + Math.floor(100000 + Math.random() * 900000);
-      const payload = {
-        id: customId || randomCode,
-        category,
-        lat,
-        lng,
-        description: description || CATEGORY_LABELS[category] || category,
-        is_resolved: false,
-        created_by_admin: true,
-        resolved_votes: 0,
-        unresolved_votes: 0,
-      };
+.active-filter-banner {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 7px 11px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
 
-      if (startRaw) {
-        payload.start_at = new Date(startRaw).toISOString();
-      }
-      if (endRaw) {
-        payload.end_at = new Date(endRaw).toISOString();
-      }
+.active-filter-banner.show {
+  display: flex;
+}
 
-      const { error } = await db.from("hazards").insert(payload);
-      if (error) {
-        showAdminNotice(`บันทึกหมุดไม่สำเร็จ: ${error.message} (code: ${error.code || "-"})`);
-        return;
-      }
+.reset-link-btn {
+  background: var(--surface);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
 
-      showAdminNotice(`ปักหมุดรหัส ${payload.id} เรียบร้อยแล้ว`, false);
-      document.getElementById("adminDesc").value = "";
-      document.getElementById("adminCode").value = "";
-      await loadAdminHazards();
-    }
+/* แผนที่ Leaflet */
+#map {
+  width: 100%;
+  height: calc(100vh - 155px);
+  min-height: 440px;
+  max-height: 680px;
+  border-radius: 16px;
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow);
+  z-index: 1;
+}
 
-    function updateAdminCounts() {
-      const activeCount = adminHazards.filter((h) => !h.is_resolved).length;
-      const resolvedCount = adminHazards.filter((h) => h.is_resolved).length;
+.safewalk-custom-pin,
+.safewalk-user-dot {
+  background: transparent !important;
+  border: none !important;
+}
 
-      document.getElementById("adminActiveNum").textContent = activeCount;
-      document.getElementById("adminResolvedNum").textContent = resolvedCount;
+.hazard-card {
+  background: var(--surface);
+  border: 1.5px solid var(--primary);
+  border-radius: 15px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+}
 
-      document
-        .getElementById("adminFilterActive")
-        ?.classList.toggle("selected", statusFilter === "active");
-      document
-        .getElementById("adminFilterResolved")
-        ?.classList.toggle("selected", statusFilter === "resolved");
-    }
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 5px;
+}
 
-    function renderAdminList() {
-      const container = document.getElementById("adminListContainer");
-      if (!container) return;
+.card-title {
+  font-size: 15px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 
-      const filtered = adminHazards.filter((item) => {
-        const matchStatus =
-          statusFilter === "resolved"
-            ? Boolean(item.is_resolved)
-            : statusFilter === "active"
-            ? !item.is_resolved
-            : true;
-        const matchCategory =
-          categoryFilter === "all" ||
-          String(item.category || "").toLowerCase() === categoryFilter;
-        return matchStatus && matchCategory;
-      });
+.card-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
 
-      if (filtered.length === 0) {
-        container.innerHTML = `<div class="hazard-card"><div class="card-sub">ไม่มีรายการจุดเสี่ยงตามตัวกรองที่เลือก</div></div>`;
-        return;
-      }
+.status-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 
-      container.innerHTML = filtered
-        .map((item) => {
-          const catKey = String(item.category || "").toLowerCase();
-          const catIcon = CATEGORY_ICONS[catKey] || "lucide:alert-circle";
-          const isResolved = Boolean(item.is_resolved);
-          const unresVotes = Number(item.unresolved_votes ?? 0);
-          const resVotes = Number(item.resolved_votes ?? 0);
-          const createdStr = item.created_at
-            ? new Date(item.created_at).toLocaleString("th-TH")
-            : "-";
-          const windowText =
-            item.start_at || item.end_at
-              ? `ช่วงเวลา: ${item.start_at ? new Date(item.start_at).toLocaleString("th-TH") : "-"} ถึง ${item.end_at ? new Date(item.end_at).toLocaleString("th-TH") : "-"}`
-              : "";
+.status-tag.resolved {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
 
-          return `
-            <div class="hazard-card">
-              <div class="card-top">
-                <div class="card-title">
-                  <iconify-icon icon="${catIcon}" width="16"></iconify-icon>
-                  <span>${CATEGORY_LABELS[catKey] || item.category || "จุดเสี่ยง"}</span>
-                </div>
-                <span class="status-tag ${isResolved ? "resolved" : "unresolved"}">
-                  <iconify-icon icon="${isResolved ? "lucide:check-circle-2" : "lucide:clock"}" width="12"></iconify-icon>
-                  <span>${isResolved ? "แก้ไขแล้ว" : "กำลังดำเนินการ"}</span>
-                </span>
-              </div>
-              <div>${item.description || ""}</div>
-              ${windowText ? `<div class="card-sub" style="margin-top:4px;">${windowText}</div>` : ""}
-              <div class="card-meta">
-                <span>
-                  <iconify-icon icon="lucide:map-pin" width="12"></iconify-icon>
-                  ${Number(item.lat).toFixed(5)}, ${Number(item.lng).toFixed(5)}
-                </span>
-                <span>
-                  <iconify-icon icon="lucide:calendar" width="12"></iconify-icon>
-                  ${createdStr}
-                </span>
-                <span>
-                  <iconify-icon icon="lucide:hash" width="12"></iconify-icon>
-                  ${item.id}
-                </span>
-              </div>
-              <div class="vote-status-note">
-                <iconify-icon icon="lucide:bar-chart-2" width="14"></iconify-icon>
-                <span>ผลโหวต: ยังไม่แก้ไข ${unresVotes} · แก้ไขแล้ว ${resVotes}</span>
-              </div>
-              <div class="card-actions">
-                <button
-                  class="action-btn ${isResolved ? "" : "picked"}"
-                  type="button"
-                  onclick="toggleHazardStatus('${item.id}', ${!isResolved})"
-                >
-                  <iconify-icon icon="${isResolved ? "lucide:rotate-ccw" : "lucide:check-circle-2"}" width="13"></iconify-icon>
-                  <span>${isResolved ? "เปิดเป็นกำลังดำเนินการ" : "ยืนยันว่าแก้ไขแล้ว"}</span>
-                </button>
-                <button
-                  class="action-btn danger-btn"
-                  type="button"
-                  onclick="deleteHazard('${item.id}')"
-                >
-                  <iconify-icon icon="lucide:trash-2" width="13"></iconify-icon>
-                  <span>ลบรายการ</span>
-                </button>
-              </div>
-            </div>
-          `;
-        })
-        .join("");
-    }
+.status-tag.unresolved {
+  background: #fef3c7;
+  color: #92400e;
+}
 
-    async function loadAdminHazards() {
-      const db = getDb();
-      if (!db) {
-        showAdminNotice("ไม่พบการเชื่อมต่อ sbClient จาก supabase-config.js");
-        return;
-      }
+body.dark-mode .status-tag.unresolved {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
 
-      const { data, error } = await db
-        .from("hazards")
-        .select("*")
-        .order("created_at", { ascending: false });
+.card-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 
-      if (error) {
-        showAdminNotice(`โหลดข้อมูลไม่สำเร็จ: ${error.message}`);
-        return;
-      }
+.card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 
-      showAdminNotice("");
-      adminHazards = Array.isArray(data) ? data : [];
-      updateAdminCounts();
-      renderAdminList();
-    }
+.vote-status-note {
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 700;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
 
-    async function toggleHazardStatus(id, markResolved) {
-      const db = getDb();
-      if (!db) return;
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
 
-      const nowIso = markResolved ? new Date().toISOString() : null;
-      const { error } = await db
-        .from("hazards")
-        .update({
-          is_resolved: markResolved,
-          resolved_decided_at: nowIso,
-        })
-        .eq("id", id);
+.action-btn {
+  background: var(--surface);
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
 
-      if (error) {
-        showAdminNotice(`อัปเดตสถานะไม่สำเร็จ: ${error.message} (code: ${error.code || "-"})`);
-        return;
-      }
+.action-btn.picked {
+  background: var(--primary);
+  color: #ffffff;
+}
 
-      showAdminNotice(
-        markResolved ? `อัปเดตรหัส ${id} เป็น "แก้ไขแล้ว" เรียบร้อย` : `เปิดสถานะรหัส ${id} เป็น "กำลังดำเนินการ" แล้ว`,
-        false
-      );
-      await loadAdminHazards();
-    }
+.action-btn.danger-btn {
+  color: var(--danger);
+  border-color: var(--danger);
+}
 
-    async function deleteHazard(id) {
-      if (!confirm(`ต้องการลบรายการรหัส ${id} ออกจากฐานข้อมูลใช่หรือไม่?`)) return;
-      const db = getDb();
-      if (!db) return;
+.action-btn.danger-btn:hover {
+  background: var(--danger-soft);
+}
 
-      const { error } = await db.from("hazards").delete().eq("id", id);
-      if (error) {
-        showAdminNotice(`ลบรายการไม่สำเร็จ: ${error.message} (code: ${error.code || "-"})`);
-        return;
-      }
+.action-btn:disabled {
+  opacity: 0.72;
+  cursor: default;
+}
 
-      showAdminNotice(`ลบรายการ ${id} เรียบร้อยแล้ว`, false);
-      await loadAdminHazards();
-    }
+.hidden {
+  display: none !important;
+}
 
-    document.getElementById("saveAdminPinBtn")?.addEventListener("click", createAdminHazard);
+@media (max-width: 480px) {
+  .container {
+    padding: 6px 8px 24px;
+  }
 
-    document.getElementById("adminFilterActive")?.addEventListener("click", () => {
-      statusFilter = statusFilter === "active" ? "all" : "active";
-      updateAdminCounts();
-      renderAdminList();
-    });
+  .header-card {
+    padding: 7px 10px;
+    border-radius: 12px;
+  }
 
-    document.getElementById("adminFilterResolved")?.addEventListener("click", () => {
-      statusFilter = statusFilter === "resolved" ? "all" : "resolved";
-      updateAdminCounts();
-      renderAdminList();
-    });
+  .brand-title {
+    font-size: 13px;
+  }
 
-    document.querySelectorAll("#adminCategoryBar .cat-chip").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        document
-          .querySelectorAll("#adminCategoryBar .cat-chip")
-          .forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        categoryFilter = btn.dataset.category || "all";
-        renderAdminList();
-      });
-    });
+  .brand-sub {
+    font-size: 10px;
+  }
 
-    document.getElementById("themeToggleBtn")?.addEventListener("click", () => {
-      const isDark = document.body.classList.toggle("dark-mode");
-      const iconEl = document.getElementById("themeToggleIcon");
-      const textEl = document.getElementById("themeToggleText");
-      if (iconEl) iconEl.setAttribute("icon", isDark ? "lucide:sun" : "lucide:moon");
-      if (textEl) textEl.textContent = isDark ? "โหมดสว่าง" : "โหมดกลางคืน";
-    });
+  .nav-tab {
+    padding: 6px 7px;
+    font-size: 11px;
+  }
 
-    initAdminMap();
-    loadAdminHazards();
-  </script>
-</body>
-</html>
+  .summary-card {
+    padding: 8px 10px;
+    border-radius: 12px;
+  }
+
+  .summary-num {
+    font-size: 19px;
+  }
+
+  .summary-label {
+    font-size: 11px;
+  }
+
+  #map {
+    height: calc(100vh - 140px);
+    min-height: 420px;
+    border-radius: 14px;
+  }
+}
