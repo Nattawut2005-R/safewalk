@@ -9,7 +9,7 @@
   --danger: #dc2626;
   --danger-soft: #fee2e2;
   --border: #cde0d3;
-  --shadow: 0 6px 18px rgba(19, 34, 25, 0.06);
+  --shadow: 0 4px 14px rgba(19, 34, 25, 0.06);
 }
 
 body.dark-mode {
@@ -23,7 +23,7 @@ body.dark-mode {
   --danger: #f87171;
   --danger-soft: rgba(248, 113, 113, 0.15);
   --border: #2a3e33;
-  --shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+  --shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 
 * {
@@ -36,62 +36,63 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif;
   background: var(--bg);
   color: var(--text);
-  line-height: 1.45;
+  line-height: 1.4;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .container {
   max-width: 720px;
   margin: 0 auto;
-  padding: 12px 14px 48px;
+  padding: 8px 10px 32px;
 }
 
+/* ส่วนหัวเว็บ: กระชับขึ้น */
 .header-card {
   background: var(--surface);
   border: 1.5px solid var(--border);
-  border-radius: 18px;
-  padding: 12px 14px;
+  border-radius: 14px;
+  padding: 8px 11px;
   box-shadow: var(--shadow);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .brand-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .brand-logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
   background: var(--primary-soft);
   color: var(--primary);
   border: 1.5px solid var(--primary);
   display: grid;
   place-items: center;
   font-weight: 800;
-  font-size: 18px;
+  font-size: 16px;
+  flex-shrink: 0;
 }
 
 .brand-title {
   font-weight: 800;
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 1.25;
 }
 
 .brand-sub {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pill-btn {
@@ -99,65 +100,75 @@ body {
   color: var(--text);
   border: 1.5px solid var(--primary);
   border-radius: 999px;
-  padding: 7px 13px;
-  font-size: 13px;
+  padding: 5px 11px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   white-space: nowrap;
-  text-decoration: none;
+  flex-shrink: 0;
 }
 
+.pill-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+/* แถบสลับหน้า 3 ปุ่ม: ไม่ตัดคำตกบรรทัดมั่วๆ */
 .nav-tabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
 .nav-tab {
+  flex: 1 1 auto;
   background: var(--surface);
   color: var(--text);
   border: 1.5px solid var(--primary);
   border-radius: 999px;
-  padding: 9px 10px;
-  font-size: 13px;
+  padding: 7px 10px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
+  white-space: nowrap;
 }
 
 .nav-tab.active {
   background: var(--primary-soft);
-  box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.18);
+  box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.16);
 }
 
 .count-badge {
   background: #ef4444;
   color: #ffffff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
-  padding: 1px 6px;
+  padding: 1px 5px;
   border-radius: 999px;
+  line-height: 1.2;
 }
 
+/* 2 กล่องสรุปสถานะในหน้า "เรื่องที่คนแจ้งเข้ามา": เล็กลง กระชับขึ้น */
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
 .summary-card {
   background: var(--surface);
   border: 1.5px solid var(--border);
-  border-radius: 16px;
-  padding: 14px 16px;
+  border-radius: 14px;
+  padding: 10px 12px;
   box-shadow: var(--shadow);
   cursor: pointer;
   transition: transform 0.12s ease, border-color 0.15s ease, background-color 0.15s ease;
@@ -175,10 +186,10 @@ body {
 }
 
 .summary-num {
-  font-size: 26px;
+  font-size: 21px;
   font-weight: 800;
   line-height: 1.1;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .summary-num.danger {
@@ -190,18 +201,18 @@ body {
 }
 
 .summary-label {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
   font-weight: 600;
 }
 
-/* ปุ่มกรองหมวดหมู่อยู่ในหน้า "เรื่องที่คนแจ้งเข้ามา" และไม่มีปุ่ม "แก้ไขแล้ว" */
+/* แถบกรองหมวดหมู่แนวนอน */
 .filter-scroll {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   overflow-x: auto;
   padding-bottom: 6px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   scrollbar-width: none;
 }
 
@@ -214,8 +225,8 @@ body {
   color: var(--text);
   border: 1.5px solid var(--primary);
   border-radius: 999px;
-  padding: 7px 14px;
-  font-size: 13px;
+  padding: 6px 12px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
@@ -241,9 +252,9 @@ body {
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 8px 12px;
+  padding: 7px 11px;
   margin-bottom: 10px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -256,16 +267,20 @@ body {
   color: var(--primary);
   border: 1px solid var(--primary);
   border-radius: 999px;
-  padding: 4px 10px;
-  font-size: 12px;
+  padding: 3px 9px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
 }
 
+/* แผนที่ Leaflet: เพิ่มพื้นที่ให้เห็นได้กว้างขึ้นบนจอโทรศัพท์ */
 #map {
   width: 100%;
-  height: 430px;
-  border-radius: 18px;
+  height: calc(100vh - 155px);
+  min-height: 440px;
+  max-height: 680px;
+  border-radius: 16px;
   border: 1.5px solid var(--border);
   box-shadow: var(--shadow);
   z-index: 1;
@@ -280,9 +295,9 @@ body {
 .hazard-card {
   background: var(--surface);
   border: 1.5px solid var(--primary);
-  border-radius: 18px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
+  border-radius: 15px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
   box-shadow: var(--shadow);
 }
 
@@ -291,23 +306,23 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .card-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
 }
 
 .card-sub {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
 }
 
 .status-tag {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 3px 10px;
+  padding: 2px 9px;
   border-radius: 999px;
   white-space: nowrap;
 }
@@ -328,9 +343,9 @@ body.dark-mode .status-tag.unresolved {
 }
 
 .card-meta {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
-  margin-top: 8px;
+  margin-top: 6px;
   display: flex;
   justify-content: space-between;
   gap: 8px;
@@ -341,14 +356,14 @@ body.dark-mode .status-tag.unresolved {
   font-size: 12px;
   color: var(--primary);
   font-weight: 700;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .card-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 6px;
+  margin-top: 10px;
 }
 
 .action-btn {
@@ -356,8 +371,8 @@ body.dark-mode .status-tag.unresolved {
   color: var(--primary);
   border: 1.5px solid var(--primary);
   border-radius: 999px;
-  padding: 7px 14px;
-  font-size: 13px;
+  padding: 6px 12px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   transition: background-color 0.15s ease, color 0.15s ease;
@@ -375,4 +390,48 @@ body.dark-mode .status-tag.unresolved {
 
 .hidden {
   display: none !important;
+}
+
+/* ปรับระยะและขนาดฟอนต์ให้เหมาะกับหน้าจอมือถือโดยเฉพาะ */
+@media (max-width: 480px) {
+  .container {
+    padding: 6px 8px 24px;
+  }
+
+  .header-card {
+    padding: 7px 10px;
+    border-radius: 12px;
+  }
+
+  .brand-title {
+    font-size: 13px;
+  }
+
+  .brand-sub {
+    font-size: 10px;
+  }
+
+  .nav-tab {
+    padding: 6px 7px;
+    font-size: 11px;
+  }
+
+  .summary-card {
+    padding: 8px 10px;
+    border-radius: 12px;
+  }
+
+  .summary-num {
+    font-size: 19px;
+  }
+
+  .summary-label {
+    font-size: 11px;
+  }
+
+  #map {
+    height: calc(100vh - 140px);
+    min-height: 420px;
+    border-radius: 14px;
+  }
 }
